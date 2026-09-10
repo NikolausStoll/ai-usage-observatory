@@ -39,3 +39,28 @@ const server = serve({
 
 await server.ready();
 log({ level: "info", event: "listening", port: PORT, dataDir: DATA_DIR, nodeEnv: process.env["NODE_ENV"] ?? "production" });
+
+let isShuttingDown = false;
+
+function shutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  log({ level: "info", event: "shutdown_start", signal });
+
+  server.close().then(() => {
+    log({ level: "info", event: "shutdown_complete" });
+    process.exit(0);
+  }).catch((err) => {
+    log({ level: "error", event: "shutdown_error", message: String(err) });
+    process.exit(1);
+  });
+
+  // Force exit if graceful shutdown takes too long
+  setTimeout(() => {
+    log({ level: "warn", event: "shutdown_timeout" });
+    process.exit(1);
+  }, 10_000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

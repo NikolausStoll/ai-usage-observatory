@@ -5,7 +5,12 @@
 **Purpose:** Source of truth for the initial implementation\
 **Target:** Private, self-hosted AI observability service
 
-**Revision note:** v0.2.1 consolidates the original v0.2 decisions with the findings from the independent implementation comparison. It tightens repository boundaries, test organization, bounded request handling, decimal-safe aggregation, pricing transactionality, and Home Assistant/Docker runtime requirements without expanding the product scope.
+**Revision note:** v0.2.1 consolidates the original v0.2 decisions with
+the findings from the independent implementation comparison. It tightens
+repository boundaries, test organization, bounded request handling,
+decimal-safe aggregation, pricing transactionality, and Home
+Assistant/Docker runtime requirements without expanding the product
+scope.
 
 ------------------------------------------------------------------------
 
@@ -314,16 +319,17 @@ The Observatory MUST NOT implement its own:
 The external ingestion API uses its own application API-key
 authentication as defined later.
 
-
 ------------------------------------------------------------------------
 
 ## 4.7 Repository and code boundaries
 
-The project is one TanStack Start application, but frontend and backend code MUST have a clear logical separation.
+The project is one TanStack Start application, but frontend and backend
+code MUST have a clear logical separation.
 
-The exact TanStack Start route conventions may be used, but the implementation SHOULD follow a structure equivalent to:
+The exact TanStack Start route conventions may be used, but the
+implementation SHOULD follow a structure equivalent to:
 
-```text
+``` text
 src/
   routes/                  # UI routes and thin API/server-function transport
   frontend/                # React UI components/features/hooks
@@ -340,47 +346,57 @@ migrations/
 
 Important rules:
 
-- Frontend code MUST NOT import backend-only modules.
-- Backend code MUST NOT depend on React/UI modules.
-- API routes and Server Functions MUST remain thin transport adapters.
-- Domain/application services, pricing, persistence, artifact storage, and authentication logic belong outside route components.
-- Shared code MUST contain only code that is genuinely usable by both sides.
-- Do not create a second frontend or backend application/package unless a concrete requirement appears later.
+-   Frontend code MUST NOT import backend-only modules.
+-   Backend code MUST NOT depend on React/UI modules.
+-   API routes and Server Functions MUST remain thin transport adapters.
+-   Domain/application services, pricing, persistence, artifact storage,
+    and authentication logic belong outside route components.
+-   Shared code MUST contain only code that is genuinely usable by both
+    sides.
+-   Do not create a second frontend or backend application/package
+    unless a concrete requirement appears later.
 
 ### Test organization
 
-Automated tests MUST live outside `src/` in the repository's `tests/` tree.
+Automated tests MUST live outside `src/` in the repository's `tests/`
+tree.
 
 Use a small, clear separation between:
 
-- unit tests for domain/calculation logic;
-- integration tests for database/API behavior;
-- fixtures/test data.
+-   unit tests for domain/calculation logic;
+-   integration tests for database/API behavior;
+-   fixtures/test data.
 
-A test file may be colocated with source code only if a framework constraint makes it genuinely necessary; this is an exception, not the default project organization.
+A test file may be colocated with source code only if a framework
+constraint makes it genuinely necessary; this is an exception, not the
+default project organization.
 
 ------------------------------------------------------------------------
 
 ## 4.8 Home Assistant and container runtime contract
 
-The intended production environment is a Home Assistant-hosted Docker/container deployment.
+The intended production environment is a Home Assistant-hosted
+Docker/container deployment.
 
-The application MUST be self-contained in one container and MUST NOT require another runtime service.
+The application MUST be self-contained in one container and MUST NOT
+require another runtime service.
 
 ### Networking
 
-- The application MUST listen on a configurable port.
-- It MUST bind to `0.0.0.0`, not only localhost.
-- The container exposes one application port.
-- No additional ports are required for database, artifacts, metrics, or administration.
+-   The application MUST listen on a configurable port.
+-   It MUST bind to `0.0.0.0`, not only localhost.
+-   The container exposes one application port.
+-   No additional ports are required for database, artifacts, metrics,
+    or administration.
 
 ### Persistent data
 
-All persistent application data MUST live below one configurable data directory, defaulting to `/data` in the container.
+All persistent application data MUST live below one configurable data
+directory, defaulting to `/data` in the container.
 
 Conceptually:
 
-```text
+``` text
 /data/
   observatory.sqlite
   observatory.sqlite-wal
@@ -388,27 +404,42 @@ Conceptually:
   artifacts/
 ```
 
-SQLite temporary/WAL/SHM files MUST remain on the same persistent filesystem as the database.
+SQLite temporary/WAL/SHM files MUST remain on the same persistent
+filesystem as the database.
 
-The application MUST NOT write persistent state into the application/code directory or any other container path.
+The application MUST NOT write persistent state into the
+application/code directory or any other container path.
 
 ### Fresh-volume behavior
 
-A fresh, empty persistent data directory MUST be a supported deployment state.
+A fresh, empty persistent data directory MUST be a supported deployment
+state.
 
-The application MUST be able to create the required subdirectories and database files on startup without requiring manual filesystem preparation inside the container.
+The application MUST be able to create the required subdirectories and
+database files on startup without requiring manual filesystem
+preparation inside the container.
 
-The supported runtime UID/GID and filesystem-permission assumptions MUST be explicit in the Docker/deployment configuration.
+The supported runtime UID/GID and filesystem-permission assumptions MUST
+be explicit in the Docker/deployment configuration.
 
-A fresh host-mounted data directory MUST be covered by an automated or scripted deployment smoke test. The implementation MUST NOT rely only on Docker named-volume behavior if the intended Home Assistant deployment uses a host/bind-backed persistent directory.
+A fresh host-mounted data directory MUST be verified before considering
+the Home Assistant deployment release-ready. This verification MUST use
+the actual production container and a host bind mount rather than
+relying only on Docker named-volume behavior.
+
+For this private V1 application, this is a release-verification
+requirement, not a requirement to build permanent Docker orchestration
+or smoke-test infrastructure. The verification may be performed manually
+and documented in the completion/release report.
 
 ### Startup and migrations
 
-Container startup MUST perform database migrations before the application accepts normal traffic.
+Container startup MUST perform database migrations before the
+application accepts normal traffic.
 
 Startup sequence MUST be effectively:
 
-```text
+``` text
 process starts
   -> validate/create data paths
   -> run migrations
@@ -417,7 +448,8 @@ process starts
   -> readiness becomes successful
 ```
 
-A failed migration MUST prevent the application from reporting itself ready.
+A failed migration MUST prevent the application from reporting itself
+ready.
 
 No request should be accepted against an incompletely migrated schema.
 
@@ -425,17 +457,19 @@ No request should be accepted against an incompletely migrated schema.
 
 The application MUST provide a lightweight health endpoint, for example:
 
-```text
+``` text
 GET /health
 ```
 
 The endpoint MUST be suitable for a Docker `HEALTHCHECK`.
 
-If a separate readiness concept is useful, it may be added, but no complex health framework is required.
+If a separate readiness concept is useful, it may be added, but no
+complex health framework is required.
 
 ### Shutdown
 
-The process MUST handle normal container termination signals and close database/resources cleanly before exiting.
+The process MUST handle normal container termination signals and close
+database/resources cleanly before exiting.
 
 Do not spawn unrelated long-lived background processes.
 
@@ -443,41 +477,51 @@ Do not spawn unrelated long-lived background processes.
 
 Application logs MUST go to stdout/stderr.
 
-Do not require application log files inside the persistent data directory.
+Do not require application log files inside the persistent data
+directory.
 
 ### Configuration
 
-Deployment-specific configuration MUST come from environment variables or the container runtime configuration.
+Deployment-specific configuration MUST come from environment variables
+or the container runtime configuration.
 
-Do not hardcode host paths, hostnames, Cloudflare configuration, or Home Assistant-specific runtime identifiers into application code.
+Do not hardcode host paths, hostnames, Cloudflare configuration, or Home
+Assistant-specific runtime identifiers into application code.
 
 ### Backup
 
 Backups are outside the application's responsibility.
 
-Home Assistant is responsible for backing up the persistent data directory, including both SQLite data and artifacts.
+Home Assistant is responsible for backing up the persistent data
+directory, including both SQLite data and artifacts.
 
-The application MUST therefore keep all state that must survive backup/restore within `/data`.
+The application MUST therefore keep all state that must survive
+backup/restore within `/data`.
 
 ### External authentication boundary
 
-The interactive UI is expected to be exposed behind Cloudflare with GitHub SSO.
+The interactive UI is expected to be exposed behind Cloudflare with
+GitHub SSO.
 
 The Observatory itself implements no interactive authentication.
 
-This creates a deployment trust boundary: management/UI endpoints MUST NOT be intentionally exposed directly to an untrusted network without an equivalent external access control layer.
+This creates a deployment trust boundary: management/UI endpoints MUST
+NOT be intentionally exposed directly to an untrusted network without an
+equivalent external access control layer.
 
-The application does not need to implement proxy-token validation or a second authentication system in V1.
+The application does not need to implement proxy-token validation or a
+second authentication system in V1.
 
 ------------------------------------------------------------------------
 
 ## 4.9 Production Docker build
 
-The Docker image MUST be a reproducible production image suitable for Home Assistant deployment.
+The Docker image MUST be a reproducible production image suitable for
+Home Assistant deployment.
 
 Use a multi-stage build where appropriate:
 
-```text
+``` text
 builder
   -> install/build
   -> TanStack Start production build
@@ -489,14 +533,18 @@ runtime
 
 The final runtime image MUST NOT require:
 
-- development server startup;
-- `npm install` during container startup;
-- compiler/build toolchains that are unnecessary at runtime;
-- a separate database container.
+-   development server startup;
+-   `npm install` during container startup;
+-   compiler/build toolchains that are unnecessary at runtime;
+-   a separate database container.
 
-Native dependencies such as `better-sqlite3` MUST be built or installed in a way compatible with the actual runtime image. The Docker build itself is a required acceptance criterion.
+Native dependencies such as `better-sqlite3` MUST be built or installed
+in a way compatible with the actual runtime image. The Docker build
+itself is a required acceptance criterion.
 
-The implementation MUST pin direct dependency versions in the lockfile and MUST NOT use broad version ranges for TanStack dependencies where the specification calls for pinned versions.
+The implementation MUST pin direct dependency versions in the lockfile
+and MUST NOT use broad version ranges for TanStack dependencies where
+the specification calls for pinned versions.
 
 ------------------------------------------------------------------------
 
@@ -1761,20 +1809,24 @@ based on actual usage.
 
 # 22.1 Post-implementation correction pass
 
-This v0.2.1 specification is also intended to correct the already-created implementations before further feature work continues.
+This v0.2.1 specification is also intended to correct the
+already-created implementations before further feature work continues.
 
-If an implementation already contains all four original phases, do NOT rebuild the product from scratch.
+If an implementation already contains all four original phases, do NOT
+rebuild the product from scratch.
 
 Instead:
 
-1. Compare the existing implementation against v0.2.1.
-2. Preserve compliant functionality.
-3. Correct only deviations and the newly specified repository/runtime requirements.
-4. Add or improve acceptance tests where required.
-5. Re-run the complete verification suite.
-6. Do not introduce unrelated product features.
+1.  Compare the existing implementation against v0.2.1.
+2.  Preserve compliant functionality.
+3.  Correct only deviations and the newly specified repository/runtime
+    requirements.
+4.  Add or improve acceptance tests where required.
+5.  Re-run the complete verification suite.
+6.  Do not introduce unrelated product features.
 
-This correction pass is complete only when the implementation satisfies v0.2.1 and the Phase 4 acceptance gate can be demonstrated again.
+This correction pass is complete only when the implementation satisfies
+v0.2.1 and the Phase 4 acceptance gate can be demonstrated again.
 
 # 23. Implementation Phases
 
@@ -1979,16 +2031,20 @@ Container must:
 
 -   build successfully from the repository Dockerfile;
 -   start from a clean host-mounted persistent data directory;
--   automatically create required directories and migrate DB before readiness;
+-   automatically create required directories and migrate DB before
+    readiness;
 -   expose the application on `0.0.0.0`;
 -   pass `/health`;
 -   persist data across restart;
--   store SQLite and artifacts entirely under the persistent data directory;
+-   store SQLite and artifacts entirely under the persistent data
+    directory;
 -   log through stdout/stderr;
 -   handle normal container termination;
 -   require no database/container dependency other than itself;
--   use a runtime UID/GID/filesystem arrangement that works with the intended Home Assistant volume model;
--   be suitable for Home Assistant-managed persistent storage and backup.
+-   use a runtime UID/GID/filesystem arrangement that works with the
+    intended Home Assistant volume model;
+-   be suitable for Home Assistant-managed persistent storage and
+    backup.
 
 Then provide the final report.
 
@@ -1996,8 +2052,16 @@ Then provide the final report.
 
 # 24. Critical Acceptance Criteria
 
-These requirements are mandatory and should be automated where
-practical.
+These requirements are mandatory.
+
+Core business, data-integrity, pricing, ingestion, and other inexpensive
+repeatable invariants SHOULD be covered by automated tests.
+
+Acceptance criteria do NOT imply that every criterion requires permanent
+automated test infrastructure. Deployment characteristics that are
+cumbersome or low-value to automate for this private V1 application MAY
+be verified manually as part of release verification, provided the
+verification is actually performed and reported.
 
 ## 24.1 Ingestion and validation
 
@@ -2090,7 +2154,8 @@ without meaningful rounding drift.
 
 No per-event cent rounding is allowed.
 
-Dashboard/summary aggregation must also preserve decimal correctness and must not cast authoritative cost values to floating point.
+Dashboard/summary aggregation must also preserve decimal correctness and
+must not cast authoritative cost values to floating point.
 
 ## 24.9 Artifacts
 
@@ -2116,17 +2181,27 @@ Test or verify:
 -   artifact persistence;
 -   automatic startup migration behavior.
 
+The production deployment MUST be verified at least once with the actual
+production container and a fresh host bind-mounted `/data` directory.
+Verify clean startup, migrations, health, and persistence of both an
+event and an artifact across container recreation. This verification MAY
+be manual and documented; a permanent Docker smoke-test framework is not
+required.
+
 ## 24.11 Repository and runtime structure
 
 Verify:
 
-- frontend/backend boundaries are clear;
-- backend-only imports cannot leak into frontend bundles;
-- automated tests live outside `src/`;
-- production Docker image builds;
-- fresh bind-mounted `/data` starts successfully;
-- `/health` works after successful migrations;
-- container restart preserves DB and artifacts.
+-   frontend/backend boundaries are clear;
+-   backend-only imports cannot leak into frontend bundles;
+-   automated tests live outside `src/`;
+-   production Docker image builds;
+-   fresh bind-mounted `/data` starts successfully;
+-   `/health` works after successful migrations;
+-   container restart preserves DB and artifacts.
+
+The bind-mount/restart items above are release-verification requirements
+and do not require dedicated automated Docker orchestration.
 
 ## 24.12 Build quality
 
@@ -2350,4 +2425,7 @@ preserves these rules:
 15. **Do not solve scale or complexity that does not exist yet.**
 16. **Build the backend/data pipeline first; learn from real usage
     before designing the final analytics UI.**
-17. **Follow the four implementation phases and stop after each phase. When working from an already completed implementation, use the post-implementation correction pass in §22.1 instead of rebuilding compliant functionality.**
+17. **Follow the four implementation phases and stop after each phase.
+    When working from an already completed implementation, use the
+    post-implementation correction pass in §22.1 instead of rebuilding
+    compliant functionality.**
