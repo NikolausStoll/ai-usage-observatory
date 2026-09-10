@@ -11,17 +11,18 @@ const EventFiltersSchema = z.object({
   feature: z.string().optional(),
   provider: z.string().optional(),
   page: z.number().int().positive().optional(),
-});
+}).optional();
 
-export const fetchEvents = createServerFn({ method: "GET" })
-  .validator((input: unknown) => EventFiltersSchema.parse(input ?? {}))
+export const fetchEvents = createServerFn({ method: "GET", strict: false })
+  .validator(EventFiltersSchema)
   .handler(async ({ data }) => {
     const db = getDb();
-    return listEvents(db, data, data.page ?? 1);
+    const filters = data ?? {};
+    return listEvents(db, filters, filters.page ?? 1);
   });
 
-export const fetchEvent = createServerFn({ method: "GET" })
-  .validator((input: unknown) => z.string().parse(input))
+export const fetchEvent = createServerFn({ method: "GET", strict: false })
+  .validator(z.string())
   .handler(async ({ data: eventId }) => {
     const db = getDb();
     const event = getEvent(db, eventId);

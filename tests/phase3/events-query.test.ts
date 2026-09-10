@@ -6,7 +6,7 @@ import { ingestEvent, listEvents, getEvent } from "../../src/domain/events/event
 
 let db: Database.Database;
 
-function makeEvent(overrides: Partial<typeof base> & { eventId: string }) {
+function makeEvent(overrides: Partial<Omit<typeof base, "status">> & { eventId: string; status?: "success" | "error" }) {
   return { ...base, ...overrides };
 }
 
@@ -126,7 +126,7 @@ describe("listEvents", () => {
 
     ingestEvent(
       db,
-      { ...base, eventId: "00000000-0000-4000-8000-000000000001", usage: { inputTokens: 1000, outputTokens: 500, cachedInputTokens: null, reasoningTokens: null, totalTokens: 1500, rawUsage: null } },
+      { ...base, eventId: "00000000-0000-4000-8000-000000000001", usage: { inputTokens: 1000, outputTokens: 500, cachedInputTokens: null, reasoningTokens: null, totalTokens: 1500 } },
       "app-1"
     );
 

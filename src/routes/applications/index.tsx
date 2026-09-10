@@ -55,7 +55,7 @@ function ApplicationsPage() {
       setCreateId("");
       setCreateName("");
       setShowCreateForm(false);
-      router.invalidate();
+      void router.invalidate();
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Failed to create");
     }
@@ -65,7 +65,7 @@ function ApplicationsPage() {
     try {
       await updateApplicationDisplayNameFn({ data: { id: appId, displayName: editNameValue.trim() } });
       setEditNameId(null);
-      router.invalidate();
+      void router.invalidate();
     } catch {
       // silently ignore — could show error
     }
@@ -164,7 +164,7 @@ function ApplicationsPage() {
               <div>
                 {editNameId === app.id ? (
                   <form
-                    onSubmit={(e) => { e.preventDefault(); submitEditName(app.id); }}
+                    onSubmit={(e) => { e.preventDefault(); void submitEditName(app.id); }}
                     style={{ display: "inline-flex", gap: 8, alignItems: "center" }}
                   >
                     <input

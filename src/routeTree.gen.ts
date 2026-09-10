@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HealthRouteImport } from './routes/health'
 import { Route as ApplicationsIndexRouteImport } from './routes/applications/index'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as EventsEventIdRouteImport } from './routes/events/$eventId'
@@ -21,6 +22,11 @@ import { Route as ApiV1EventsEventIdArtifactsRouteImport } from './routes/api/v1
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApplicationsIndexRoute = ApplicationsIndexRouteImport.update({
@@ -63,6 +69,7 @@ const ApiV1EventsEventIdArtifactsRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/health': typeof HealthRoute
   '/events/$eventId': typeof EventsEventIdRoute
   '/applications/': typeof ApplicationsIndexRoute
   '/events/': typeof EventsIndexRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/health': typeof HealthRoute
   '/events/$eventId': typeof EventsEventIdRoute
   '/applications': typeof ApplicationsIndexRoute
   '/events': typeof EventsIndexRoute
@@ -84,6 +92,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/health': typeof HealthRoute
   '/events/$eventId': typeof EventsEventIdRoute
   '/applications/': typeof ApplicationsIndexRoute
   '/events/': typeof EventsIndexRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/health'
     | '/events/$eventId'
     | '/applications/'
     | '/events/'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/health'
     | '/events/$eventId'
     | '/applications'
     | '/events'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/health'
     | '/events/$eventId'
     | '/applications/'
     | '/events/'
@@ -127,6 +139,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HealthRoute: typeof HealthRoute
   EventsEventIdRoute: typeof EventsEventIdRoute
   ApplicationsIndexRoute: typeof ApplicationsIndexRoute
   EventsIndexRoute: typeof EventsIndexRoute
@@ -142,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/applications/': {
@@ -210,6 +230,7 @@ const ApiV1EventsRouteWithChildren = ApiV1EventsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HealthRoute: HealthRoute,
   EventsEventIdRoute: EventsEventIdRoute,
   ApplicationsIndexRoute: ApplicationsIndexRoute,
   EventsIndexRoute: EventsIndexRoute,

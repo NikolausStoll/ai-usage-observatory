@@ -22,15 +22,15 @@ export const fetchMissingPricingModels = createServerFn({ method: "GET" })
     return getMissingPricingModels(db);
   });
 
-export const fetchPricingById = createServerFn({ method: "GET" })
-  .validator((input: unknown) => z.string().parse(input))
+export const fetchPricingById = createServerFn({ method: "GET", strict: false })
+  .validator(z.string())
   .handler(async ({ data: id }) => {
     const db = getDb();
     return getPricing(db, id);
   });
 
-export const createPricingFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) => CreatePricingSchema.parse(input))
+export const createPricingFn = createServerFn({ method: "POST", strict: false })
+  .validator(CreatePricingSchema)
   .handler(async ({ data }) => {
     const db = getDb();
     const record = createPricing(db, data);
@@ -40,10 +40,8 @@ export const createPricingFn = createServerFn({ method: "POST" })
     return { record, affectedEvents: affected.cnt };
   });
 
-export const updatePricingFn = createServerFn({ method: "POST" })
-  .validator((input: unknown) =>
-    z.object({ id: z.string().uuid(), data: CreatePricingSchema.partial() }).parse(input)
-  )
+export const updatePricingFn = createServerFn({ method: "POST", strict: false })
+  .validator(z.object({ id: z.string().uuid(), data: CreatePricingSchema.partial() }))
   .handler(async ({ data: { id, data } }) => {
     const db = getDb();
     const before = db.prepare(

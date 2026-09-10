@@ -4,8 +4,8 @@ import { getDb } from "../db/database.js";
 import { getArtifact } from "../domain/artifacts/artifact-service.js";
 import { getArtifactStorage } from "../domain/artifacts/artifact-storage.js";
 
-export const fetchArtifactData = createServerFn({ method: "GET" })
-  .validator((input: unknown) => z.string().parse(input))
+export const fetchArtifactData = createServerFn({ method: "GET", strict: false })
+  .validator(z.string())
   .handler(async ({ data: artifactId }) => {
     const db = getDb();
     const artifact = getArtifact(db, artifactId);

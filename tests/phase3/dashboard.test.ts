@@ -23,7 +23,7 @@ const makeEvent = (id: string, status: "success" | "error" = "success", tokens?:
   provider: "openai",
   requestedModel: "gpt-4",
   usage: tokens
-    ? { inputTokens: tokens.inputTokens ?? null, outputTokens: tokens.outputTokens ?? null, cachedInputTokens: null, reasoningTokens: null, totalTokens: null, rawUsage: null }
+    ? { inputTokens: tokens.inputTokens ?? null, outputTokens: tokens.outputTokens ?? null, cachedInputTokens: null, reasoningTokens: null, totalTokens: null }
     : undefined,
 });
 

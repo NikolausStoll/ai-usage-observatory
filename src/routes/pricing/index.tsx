@@ -118,7 +118,7 @@ function PricingPage() {
       }
       setShowForm(false);
       setEditId(null);
-      router.invalidate();
+      void router.invalidate();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Failed to save");
     }

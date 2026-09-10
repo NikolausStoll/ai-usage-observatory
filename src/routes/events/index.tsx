@@ -102,7 +102,7 @@ function EventsPage() {
   });
 
   function setFilter(key: string, value: string) {
-    navigate({
+    void navigate({
       search: (prev) => ({ ...prev, [key]: value || undefined, page: 1 }),
     });
   }

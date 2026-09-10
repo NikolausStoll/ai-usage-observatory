@@ -76,13 +76,24 @@ function runMigrations(db: Database.Database): void {
 export function createTestDb(): Database.Database {
   const db = new Database(":memory:");
   db.pragma("foreign_keys = ON");
+  // Create migration tracking table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
+  `);
   const migrationsDir = join(__dirname, "migrations");
   const files = readdirSync(migrationsDir)
     .filter((f) => f.endsWith(".sql"))
     .sort();
   for (const file of files) {
     const sql = readFileSync(join(migrationsDir, file), "utf-8");
+    const version = parseInt(file.split("_")[0]!, 10);
     db.exec(sql);
+    db.prepare(
+      "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)"
+    ).run(version, new Date().toISOString());
   }
   return db;
 }

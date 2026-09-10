@@ -143,21 +143,25 @@ export function createPricing(
   const id = randomUUID();
   const now = new Date().toISOString();
 
-  db.prepare(`
-    INSERT INTO pricing (
-      id, provider, model,
-      input_price_per_million, cached_input_price_per_million, output_price_per_million,
-      valid_from, valid_until, source, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id, data.provider, data.model,
-    data.inputPricePerMillion, data.cachedInputPricePerMillion, data.outputPricePerMillion,
-    data.validFrom, validUntil, data.source ?? null, now, now
-  );
+  const doCreate = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO pricing (
+        id, provider, model,
+        input_price_per_million, cached_input_price_per_million, output_price_per_million,
+        valid_from, valid_until, source, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id, data.provider, data.model,
+      data.inputPricePerMillion, data.cachedInputPricePerMillion, data.outputPricePerMillion,
+      data.validFrom, validUntil, data.source ?? null, now, now
+    );
 
-  const record = getPricing(db, id)!;
-  recalculateAffectedEvents(db, record);
-  return record;
+    const record = getPricing(db, id)!;
+    recalculateAffectedEvents(db, record);
+    return record;
+  });
+
+  return doCreate();
 }
 
 export function updatePricing(

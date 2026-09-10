@@ -108,7 +108,7 @@ function EventDetailPage() {
               <Row label="Error message" value={e["error_message"] as string | null} />
             </tbody>
           </table>
-          {e["error_metadata"] && (
+          {e["error_metadata"] != null && (
             <div style={{ marginTop: 12 }}>
               <JsonDisplay value={e["error_metadata"]} label="Error metadata" />
             </div>
@@ -124,7 +124,7 @@ function EventDetailPage() {
           reasoningTokens={e["reasoning_tokens"] as number | null}
           totalTokens={e["total_tokens"] as number | null}
         />
-        {e["raw_usage"] && (
+        {e["raw_usage"] != null && (
           <div style={{ marginTop: 12 }}>
             <JsonDisplay value={e["raw_usage"]} label="Raw usage" />
           </div>
@@ -144,30 +144,30 @@ function EventDetailPage() {
 
       <Section title="Request">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {e["request_config"] && <JsonDisplay value={e["request_config"]} label="Config" />}
-          {e["request_input"] !== null && e["request_input"] !== undefined
+          {e["request_config"] != null && <JsonDisplay value={e["request_config"]} label="Config" />}
+          {e["request_input"] != null
             ? <JsonDisplay value={e["request_input"]} label="Input" />
             : <span style={{ color: "#555" }}>No input stored</span>}
-          {e["request_raw"] && <JsonDisplay value={e["request_raw"]} label="Raw" />}
-          {e["request_metadata"] && <JsonDisplay value={e["request_metadata"]} label="Metadata" />}
+          {e["request_raw"] != null && <JsonDisplay value={e["request_raw"]} label="Raw" />}
+          {e["request_metadata"] != null && <JsonDisplay value={e["request_metadata"]} label="Metadata" />}
         </div>
       </Section>
 
       <Section title="Response">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {e["response_output"] !== null && e["response_output"] !== undefined
+          {e["response_output"] != null
             ? <JsonDisplay value={e["response_output"]} label="Output" />
             : <span style={{ color: "#555" }}>No output stored</span>}
-          {e["response_raw"] && <JsonDisplay value={e["response_raw"]} label="Raw" />}
-          {e["response_metadata"] && <JsonDisplay value={e["response_metadata"]} label="Metadata" />}
+          {e["response_raw"] != null && <JsonDisplay value={e["response_raw"]} label="Raw" />}
+          {e["response_metadata"] != null && <JsonDisplay value={e["response_metadata"]} label="Metadata" />}
         </div>
       </Section>
 
-      {(e["metadata"] || e["metrics"]) && (
+      {(e["metadata"] != null || e["metrics"] != null) && (
         <Section title="App data">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {e["metadata"] && <JsonDisplay value={e["metadata"]} label="Metadata" />}
-            {e["metrics"] && <JsonDisplay value={e["metrics"]} label="Metrics" />}
+            {e["metadata"] != null && <JsonDisplay value={e["metadata"]} label="Metadata" />}
+            {e["metrics"] != null && <JsonDisplay value={e["metrics"]} label="Metrics" />}
           </div>
         </Section>
       )}
