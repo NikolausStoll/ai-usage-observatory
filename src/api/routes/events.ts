@@ -3,6 +3,10 @@ import { IngestEventSchema } from "../../domain/events/event-schema.js";
 import { ingestEvent } from "../../domain/events/event-service.js";
 import { authenticateRequest } from "../../domain/auth/auth.js";
 
+function log(obj: Record<string, unknown>): void {
+  console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
+}
+
 const MAX_EVENT_SIZE_BYTES = parseInt(
   process.env["MAX_EVENT_SIZE_BYTES"] ?? String(1 * 1024 * 1024),
   10
@@ -11,6 +15,7 @@ const MAX_EVENT_SIZE_BYTES = parseInt(
 export async function handleIngestEvent(request: Request): Promise<Response> {
   const auth = authenticateRequest(getDb(), request.headers.get("authorization") ?? undefined);
   if (!auth) {
+    log({ level: "warn", event: "auth_failed", path: "POST /api/v1/events" });
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -48,6 +53,14 @@ export async function handleIngestEvent(request: Request): Promise<Response> {
   }
 
   const ingestResult = ingestEvent(getDb(), result.data, auth.applicationId);
+
+  log({
+    level: "info",
+    event: "event_ingested",
+    eventId: ingestResult.eventId,
+    applicationId: auth.applicationId,
+    duplicate: ingestResult.duplicate,
+  });
 
   return Response.json(ingestResult, { status: 200 });
 }

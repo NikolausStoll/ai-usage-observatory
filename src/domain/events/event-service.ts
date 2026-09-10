@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import type { IngestEvent } from "./event-schema.js";
+import { applyPricingToEvent } from "../pricing/pricing-service.js";
 
 export interface IngestResult {
   eventId: string;
@@ -98,7 +99,130 @@ export function ingestEvent(
     event.metrics !== undefined ? JSON.stringify(event.metrics) : null
   );
 
+  // Apply pricing if available
+  applyPricingToEvent(
+    db,
+    event.eventId,
+    event.provider,
+    event.requestedModel,
+    event.reportedModel ?? null,
+    event.timestamp,
+    event.usage?.inputTokens ?? null,
+    event.usage?.cachedInputTokens ?? null,
+    event.usage?.outputTokens ?? null
+  );
+
   return { eventId: event.eventId, received: true, duplicate: false };
+}
+
+export interface EventListFilters {
+  applicationId?: string;
+  status?: string;
+  environment?: string;
+  feature?: string;
+  provider?: string;
+}
+
+export interface EventListItem {
+  eventId: string;
+  applicationId: string;
+  applicationName: string;
+  status: string;
+  environment: string;
+  feature: string;
+  operation: string;
+  provider: string;
+  requestedModel: string;
+  reportedModel: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalCost: string | null;
+  pricingId: string | null;
+  timestamp: string;
+  durationMs: number;
+}
+
+export interface EventListResult {
+  items: EventListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export function listEvents(
+  db: Database.Database,
+  filters: EventListFilters = {},
+  page = 1,
+  pageSize = 50
+): EventListResult {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (filters.applicationId) {
+    conditions.push("e.application_id = ?");
+    params.push(filters.applicationId);
+  }
+  if (filters.status) {
+    conditions.push("e.status = ?");
+    params.push(filters.status);
+  }
+  if (filters.environment) {
+    conditions.push("e.environment = ?");
+    params.push(filters.environment);
+  }
+  if (filters.feature) {
+    conditions.push("e.feature = ?");
+    params.push(filters.feature);
+  }
+  if (filters.provider) {
+    conditions.push("e.provider = ?");
+    params.push(filters.provider);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const offset = (page - 1) * pageSize;
+
+  const countRow = db.prepare(
+    `SELECT COUNT(*) as cnt FROM events e ${where}`
+  ).get(...params) as { cnt: number };
+  const total = countRow.cnt;
+
+  const rows = db.prepare(`
+    SELECT e.event_id, e.application_id, a.display_name as application_name,
+           e.status, e.environment, e.feature, e.operation,
+           e.provider, e.requested_model, e.reported_model,
+           e.input_tokens, e.output_tokens, e.total_cost, e.pricing_id,
+           e.timestamp, e.duration_ms
+    FROM events e
+    LEFT JOIN applications a ON a.id = e.application_id
+    ${where}
+    ORDER BY e.timestamp DESC
+    LIMIT ? OFFSET ?
+  `).all(...params, pageSize, offset) as Array<Record<string, unknown>>;
+
+  return {
+    items: rows.map((r) => ({
+      eventId: r["event_id"] as string,
+      applicationId: r["application_id"] as string,
+      applicationName: (r["application_name"] as string) ?? r["application_id"] as string,
+      status: r["status"] as string,
+      environment: r["environment"] as string,
+      feature: r["feature"] as string,
+      operation: r["operation"] as string,
+      provider: r["provider"] as string,
+      requestedModel: r["requested_model"] as string,
+      reportedModel: r["reported_model"] as string | null,
+      inputTokens: r["input_tokens"] as number | null,
+      outputTokens: r["output_tokens"] as number | null,
+      totalCost: r["total_cost"] as string | null,
+      pricingId: r["pricing_id"] as string | null,
+      timestamp: r["timestamp"] as string,
+      durationMs: r["duration_ms"] as number,
+    })),
+    total,
+    page,
+    pageSize,
+  };
 }
 
 export function getEvent(

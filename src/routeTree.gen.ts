@@ -10,11 +10,37 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApplicationsIndexRouteImport } from './routes/applications/index'
+import { Route as EventsIndexRouteImport } from './routes/events/index'
+import { Route as EventsEventIdRouteImport } from './routes/events/$eventId'
+import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as ApiV1EventsRouteImport } from './routes/api/v1/events'
+import { Route as ApiV1ArtifactsArtifactIdRouteImport } from './routes/api/v1/artifacts/$artifactId'
+import { Route as ApiV1EventsEventIdArtifactsRouteImport } from './routes/api/v1/events/$eventId/artifacts'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApplicationsIndexRoute = ApplicationsIndexRouteImport.update({
+  id: '/applications/',
+  path: '/applications/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsIndexRoute = EventsIndexRouteImport.update({
+  id: '/events/',
+  path: '/events/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsEventIdRoute = EventsEventIdRouteImport.update({
+  id: '/events/$eventId',
+  path: '/events/$eventId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingIndexRoute = PricingIndexRouteImport.update({
+  id: '/pricing/',
+  path: '/pricing/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1EventsRoute = ApiV1EventsRouteImport.update({
@@ -22,31 +48,91 @@ const ApiV1EventsRoute = ApiV1EventsRouteImport.update({
   path: '/api/v1/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ArtifactsArtifactIdRoute =
+  ApiV1ArtifactsArtifactIdRouteImport.update({
+    id: '/api/v1/artifacts/$artifactId',
+    path: '/api/v1/artifacts/$artifactId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1EventsEventIdArtifactsRoute =
+  ApiV1EventsEventIdArtifactsRouteImport.update({
+    id: '/$eventId/artifacts',
+    path: '/$eventId/artifacts',
+    getParentRoute: () => ApiV1EventsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/api/v1/events': typeof ApiV1EventsRoute
+  '/events/$eventId': typeof EventsEventIdRoute
+  '/applications/': typeof ApplicationsIndexRoute
+  '/events/': typeof EventsIndexRoute
+  '/pricing/': typeof PricingIndexRoute
+  '/api/v1/events': typeof ApiV1EventsRouteWithChildren
+  '/api/v1/artifacts/$artifactId': typeof ApiV1ArtifactsArtifactIdRoute
+  '/api/v1/events/$eventId/artifacts': typeof ApiV1EventsEventIdArtifactsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/api/v1/events': typeof ApiV1EventsRoute
+  '/events/$eventId': typeof EventsEventIdRoute
+  '/applications': typeof ApplicationsIndexRoute
+  '/events': typeof EventsIndexRoute
+  '/pricing': typeof PricingIndexRoute
+  '/api/v1/events': typeof ApiV1EventsRouteWithChildren
+  '/api/v1/artifacts/$artifactId': typeof ApiV1ArtifactsArtifactIdRoute
+  '/api/v1/events/$eventId/artifacts': typeof ApiV1EventsEventIdArtifactsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/api/v1/events': typeof ApiV1EventsRoute
+  '/events/$eventId': typeof EventsEventIdRoute
+  '/applications/': typeof ApplicationsIndexRoute
+  '/events/': typeof EventsIndexRoute
+  '/pricing/': typeof PricingIndexRoute
+  '/api/v1/events': typeof ApiV1EventsRouteWithChildren
+  '/api/v1/artifacts/$artifactId': typeof ApiV1ArtifactsArtifactIdRoute
+  '/api/v1/events/$eventId/artifacts': typeof ApiV1EventsEventIdArtifactsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/v1/events'
+  fullPaths:
+    | '/'
+    | '/events/$eventId'
+    | '/applications/'
+    | '/events/'
+    | '/pricing/'
+    | '/api/v1/events'
+    | '/api/v1/artifacts/$artifactId'
+    | '/api/v1/events/$eventId/artifacts'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/v1/events'
-  id: '__root__' | '/' | '/api/v1/events'
+  to:
+    | '/'
+    | '/events/$eventId'
+    | '/applications'
+    | '/events'
+    | '/pricing'
+    | '/api/v1/events'
+    | '/api/v1/artifacts/$artifactId'
+    | '/api/v1/events/$eventId/artifacts'
+  id:
+    | '__root__'
+    | '/'
+    | '/events/$eventId'
+    | '/applications/'
+    | '/events/'
+    | '/pricing/'
+    | '/api/v1/events'
+    | '/api/v1/artifacts/$artifactId'
+    | '/api/v1/events/$eventId/artifacts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ApiV1EventsRoute: typeof ApiV1EventsRoute
+  EventsEventIdRoute: typeof EventsEventIdRoute
+  ApplicationsIndexRoute: typeof ApplicationsIndexRoute
+  EventsIndexRoute: typeof EventsIndexRoute
+  PricingIndexRoute: typeof PricingIndexRoute
+  ApiV1EventsRoute: typeof ApiV1EventsRouteWithChildren
+  ApiV1ArtifactsArtifactIdRoute: typeof ApiV1ArtifactsArtifactIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,6 +144,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/applications/': {
+      id: '/applications/'
+      path: '/applications'
+      fullPath: '/applications/'
+      preLoaderRoute: typeof ApplicationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events/': {
+      id: '/events/'
+      path: '/events'
+      fullPath: '/events/'
+      preLoaderRoute: typeof EventsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events/$eventId': {
+      id: '/events/$eventId'
+      path: '/events/$eventId'
+      fullPath: '/events/$eventId'
+      preLoaderRoute: typeof EventsEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing/': {
+      id: '/pricing/'
+      path: '/pricing'
+      fullPath: '/pricing/'
+      preLoaderRoute: typeof PricingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/events': {
       id: '/api/v1/events'
       path: '/api/v1/events'
@@ -65,12 +179,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/artifacts/$artifactId': {
+      id: '/api/v1/artifacts/$artifactId'
+      path: '/api/v1/artifacts/$artifactId'
+      fullPath: '/api/v1/artifacts/$artifactId'
+      preLoaderRoute: typeof ApiV1ArtifactsArtifactIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/events/$eventId/artifacts': {
+      id: '/api/v1/events/$eventId/artifacts'
+      path: '/$eventId/artifacts'
+      fullPath: '/api/v1/events/$eventId/artifacts'
+      preLoaderRoute: typeof ApiV1EventsEventIdArtifactsRouteImport
+      parentRoute: typeof ApiV1EventsRoute
+    }
   }
 }
 
+interface ApiV1EventsRouteChildren {
+  ApiV1EventsEventIdArtifactsRoute: typeof ApiV1EventsEventIdArtifactsRoute
+}
+
+const ApiV1EventsRouteChildren: ApiV1EventsRouteChildren = {
+  ApiV1EventsEventIdArtifactsRoute: ApiV1EventsEventIdArtifactsRoute,
+}
+
+const ApiV1EventsRouteWithChildren = ApiV1EventsRoute._addFileChildren(
+  ApiV1EventsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ApiV1EventsRoute: ApiV1EventsRoute,
+  EventsEventIdRoute: EventsEventIdRoute,
+  ApplicationsIndexRoute: ApplicationsIndexRoute,
+  EventsIndexRoute: EventsIndexRoute,
+  PricingIndexRoute: PricingIndexRoute,
+  ApiV1EventsRoute: ApiV1EventsRouteWithChildren,
+  ApiV1ArtifactsArtifactIdRoute: ApiV1ArtifactsArtifactIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

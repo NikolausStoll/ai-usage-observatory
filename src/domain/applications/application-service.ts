@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash, randomBytes } from "crypto";
 
 export interface Application {
   id: string;
@@ -87,11 +87,30 @@ export function updateKeyLastUsed(db: Database.Database, keyId: string): void {
   );
 }
 
+export function updateApplicationDisplayName(
+  db: Database.Database,
+  id: string,
+  displayName: string
+): void {
+  db.prepare("UPDATE applications SET display_name = ? WHERE id = ?").run(displayName, id);
+}
+
 export function revokeApiKey(db: Database.Database, keyId: string): void {
   db.prepare("UPDATE api_keys SET revoked_at = ? WHERE id = ?").run(
     new Date().toISOString(),
     keyId
   );
+}
+
+export function createApiKeyWithGeneration(
+  db: Database.Database,
+  applicationId: string,
+  name: string
+): { key: ApiKey; plaintext: string } {
+  const plaintext = "obs_" + randomBytes(32).toString("hex");
+  const keyHash = createHash("sha256").update(plaintext).digest("hex");
+  const key = createApiKey(db, applicationId, name, keyHash);
+  return { key, plaintext };
 }
 
 export function listApiKeys(
