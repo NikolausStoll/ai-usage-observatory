@@ -9,6 +9,8 @@ import {
   getMissingPricingModels,
 } from "../domain/pricing/pricing-service.js";
 import { CreatePricingSchema } from "../domain/pricing/pricing-schema.js";
+import { PricingImportFileSchema } from "../domain/pricing/import-schema.js";
+import { previewImport, executeImport } from "../domain/pricing/import-service.js";
 
 export const fetchPricing = createServerFn({ method: "GET" })
   .handler(async () => {
@@ -52,4 +54,19 @@ export const updatePricingFn = createServerFn({ method: "POST", strict: false })
       "SELECT COUNT(*) as cnt FROM events WHERE pricing_id = ?"
     ).get(id) as { cnt: number };
     return { record, affectedEvents: Math.max(before.cnt, after.cnt) };
+  });
+
+export const previewPricingImport = createServerFn({ method: "POST", strict: false })
+  .validator(z.object({ importFile: PricingImportFileSchema }))
+  .handler(async ({ data }) => {
+    const db = getDb();
+    return previewImport(db, data.importFile);
+  });
+
+export const executePricingImport = createServerFn({ method: "POST", strict: false })
+  .validator(z.object({ importFile: PricingImportFileSchema }))
+  .handler(async ({ data }) => {
+    const db = getDb();
+    const imported = executeImport(db, data.importFile);
+    return { imported };
   });
