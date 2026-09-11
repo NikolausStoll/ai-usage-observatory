@@ -8,7 +8,17 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Nav } from "../components/Nav.js";
 
+function NotFound() {
+  return (
+    <div style={{ padding: "24px" }}>
+      <h1 style={{ color: "#f44336" }}>404 — Not Found</h1>
+      <p style={{ color: "#888" }}>This page does not exist.</p>
+    </div>
+  );
+}
+
 export const Route = createRootRoute({
+  notFoundComponent: NotFound,
   head: () => ({
     meta: [
       { charSet: "utf-8" },

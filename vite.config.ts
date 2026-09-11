@@ -7,4 +7,8 @@ export default defineConfig({
     tanstackStart(),
     viteReact(),
   ],
+  server: {
+    port: parseInt(process.env['PORT'] ?? '8096'),
+    strictPort: true,
+  },
 });

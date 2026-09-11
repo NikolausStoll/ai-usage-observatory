@@ -14,9 +14,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env["PORT"] ?? "3000", 10);
 const DATA_DIR = process.env["DATA_DIR"] ?? "./data";
 
+if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+  console.error(JSON.stringify({ level: "error", event: "config_invalid", msg: `Invalid PORT: ${process.env["PORT"]}` }));
+  process.exit(1);
+}
+if (!DATA_DIR) {
+  console.error(JSON.stringify({ level: "error", event: "config_invalid", msg: "DATA_DIR must not be empty" }));
+  process.exit(1);
+}
+
 function log(obj) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
 }
+
+log({ level: "info", event: "config", port: PORT, dataDir: DATA_DIR, nodeEnv: process.env["NODE_ENV"] ?? "production" });
 
 // 1. Ensure data directories
 mkdirSync(DATA_DIR, { recursive: true });
@@ -38,7 +49,7 @@ const server = serve({
 });
 
 await server.ready();
-log({ level: "info", event: "listening", port: PORT, dataDir: DATA_DIR, nodeEnv: process.env["NODE_ENV"] ?? "production" });
+log({ level: "info", event: "listening", port: PORT });
 
 let isShuttingDown = false;
 
