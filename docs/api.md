@@ -309,8 +309,9 @@ curl https://your-observatory.example.com/api/v1/artifacts/ARTIFACT_ID \
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATA_DIR` | `./data` | Persistent data directory (SQLite + artifacts) |
-| `PORT` | `3000` | HTTP listen port |
+| `DATA_DIR` | `./data` | Persistent data directory (artifacts; default DB parent) |
+| `DB_PATH` | `<DATA_DIR>/observatory.sqlite` | SQLite database file path |
+| `PORT` | `8096` | HTTP listen port |
 | `NODE_ENV` | — | Set to `production` in container |
 | `MAX_EVENT_SIZE_BYTES` | `1048576` | Maximum event payload size (1 MB) |
 | `MAX_ARTIFACT_SIZE_BYTES` | `26214400` | Maximum artifact upload size (25 MB) |
@@ -318,6 +319,6 @@ curl https://your-observatory.example.com/api/v1/artifacts/ARTIFACT_ID \
 Data layout inside `DATA_DIR`:
 ```
 DATA_DIR/
-  observatory.sqlite      — SQLite database
+  observatory.sqlite      — SQLite database (default; overridable via DB_PATH)
   artifacts/              — Artifact binary files
 ```

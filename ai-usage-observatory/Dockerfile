@@ -23,6 +23,7 @@ RUN apk add --no-cache su-exec \
 # Copy build output, startup scripts, and migration source
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/start.mjs ./start.mjs
+COPY --from=builder /app/entrypoint.mjs ./entrypoint.mjs
 COPY --from=builder /app/scripts/run-migrations.mjs ./scripts/run-migrations.mjs
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
@@ -36,6 +37,7 @@ RUN mkdir -p /data && chown observatory:observatory /data
 
 ENV NODE_ENV=production
 ENV DATA_DIR=/data
+ENV DB_PATH=/data/observatory.sqlite
 ENV PORT=8096
 
 EXPOSE 8096

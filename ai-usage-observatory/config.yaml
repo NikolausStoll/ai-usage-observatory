@@ -1,5 +1,5 @@
 name: "AI Usage Observatory"
-version: "0.1.0"
+version: "0.1.1"
 slug: "ai-usage-observatory"
 description: "Observability and cost analysis for AI usage across private applications"
 url: "https://github.com/NikolausStoll/ai-observatory"
@@ -15,8 +15,16 @@ ports:
   8096/tcp: 8096
 ports_description:
   8096/tcp: "AI Usage Observatory Web UI and ingestion API"
-image: "ghcr.io/nikolausstoll/ai-usage-observatory:{version}"
-options: {}
-schema: {}
-map:
-  - data:rw
+image: "ghcr.io/nikolausstoll/ai-usage-observatory"
+options:
+  port: 8096
+  data_dir: "/data"
+  db_path: "/data/observatory.sqlite"
+  max_event_size_bytes: 1048576
+  max_artifact_size_bytes: 26214400
+schema:
+  port: int(1024,65535)
+  data_dir: str
+  db_path: str
+  max_event_size_bytes: int(1024,104857600)
+  max_artifact_size_bytes: int(1024,104857600)

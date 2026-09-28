@@ -9,10 +9,10 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export function runMigrations(dataDir) {
-  const dbPath = join(dataDir, "observatory.sqlite");
+export function runMigrations(dataDir, dbPath = join(dataDir, "observatory.sqlite")) {
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(join(dataDir, "artifacts"), { recursive: true });
+  mkdirSync(dirname(dbPath), { recursive: true });
 
   const db = new Database(dbPath);
   db.pragma("journal_mode = WAL");

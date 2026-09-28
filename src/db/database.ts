@@ -11,6 +11,13 @@ export function getDataDir(): string {
   return process.env["DATA_DIR"] ?? "./data";
 }
 
+export function getDbPath(): string {
+  if (process.env["DB_PATH"]) {
+    return process.env["DB_PATH"];
+  }
+  return join(getDataDir(), "observatory.sqlite");
+}
+
 export function getDb(): Database.Database {
   if (!_db) {
     _db = initDb();
@@ -20,7 +27,7 @@ export function getDb(): Database.Database {
 
 export function initDb(dbPath?: string): Database.Database {
   const dataDir = getDataDir();
-  const resolvedPath = dbPath ?? join(dataDir, "observatory.sqlite");
+  const resolvedPath = dbPath ?? getDbPath();
 
   mkdirSync(dirname(resolvedPath), { recursive: true });
   mkdirSync(join(dataDir, "artifacts"), { recursive: true });

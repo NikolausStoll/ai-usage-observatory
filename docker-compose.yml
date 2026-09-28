@@ -4,14 +4,15 @@ services:
   observatory:
     build: .
     ports:
-      - "3000:3000"
+      - "8096:8096"
     volumes:
       - observatory-data:/data
     environment:
       - DATA_DIR=/data
+      - DB_PATH=/data/observatory.sqlite
       - NODE_ENV=production
       # Optional overrides:
-      # - PORT=3000
+      # - PORT=8096
       # - MAX_EVENT_SIZE_BYTES=1048576
       # - MAX_ARTIFACT_SIZE_BYTES=26214400
     restart: unless-stopped

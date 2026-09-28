@@ -3,4 +3,4 @@
 # This runs as root, then drops privileges to the observatory user.
 mkdir -p /data/artifacts
 chown -R observatory:observatory /data
-exec su-exec observatory node start.mjs
+exec su-exec observatory node /app/entrypoint.mjs

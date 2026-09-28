@@ -5,14 +5,16 @@
  * 3. Starts the HTTP server
  *
  * Usage: node start.mjs
+ * Prefer entrypoint.mjs in containers (loads HA /data/options.json first).
  */
 import { mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PORT = parseInt(process.env["PORT"] ?? "3000", 10);
+const PORT = parseInt(process.env["PORT"] ?? "8096", 10);
 const DATA_DIR = process.env["DATA_DIR"] ?? "./data";
+const DB_PATH = process.env["DB_PATH"] ?? join(DATA_DIR, "observatory.sqlite");
 
 if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
   console.error(JSON.stringify({ level: "error", event: "config_invalid", msg: `Invalid PORT: ${process.env["PORT"]}` }));
@@ -22,21 +24,33 @@ if (!DATA_DIR) {
   console.error(JSON.stringify({ level: "error", event: "config_invalid", msg: "DATA_DIR must not be empty" }));
   process.exit(1);
 }
+if (!DB_PATH) {
+  console.error(JSON.stringify({ level: "error", event: "config_invalid", msg: "DB_PATH must not be empty" }));
+  process.exit(1);
+}
 
 function log(obj) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
 }
 
-log({ level: "info", event: "config", port: PORT, dataDir: DATA_DIR, nodeEnv: process.env["NODE_ENV"] ?? "production" });
+log({
+  level: "info",
+  event: "config",
+  port: PORT,
+  dataDir: DATA_DIR,
+  dbPath: DB_PATH,
+  nodeEnv: process.env["NODE_ENV"] ?? "production",
+});
 
 // 1. Ensure data directories
 mkdirSync(DATA_DIR, { recursive: true });
 mkdirSync(join(DATA_DIR, "artifacts"), { recursive: true });
-log({ level: "info", event: "data_dirs_ready", dataDir: DATA_DIR });
+mkdirSync(dirname(DB_PATH), { recursive: true });
+log({ level: "info", event: "data_dirs_ready", dataDir: DATA_DIR, dbPath: DB_PATH });
 
 // 2. Run migrations explicitly before serving
 const { runMigrations } = await import(join(__dirname, "scripts/run-migrations.mjs"));
-runMigrations(DATA_DIR);
+runMigrations(DATA_DIR, DB_PATH);
 log({ level: "info", event: "migrations_complete" });
 
 // 3. Start HTTP server
