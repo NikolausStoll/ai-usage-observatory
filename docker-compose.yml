@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  observatory:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - observatory-data:/data
+    environment:
+      - DATA_DIR=/data
+      - NODE_ENV=production
+      # Optional overrides:
+      # - PORT=3000
+      # - MAX_EVENT_SIZE_BYTES=1048576
+      # - MAX_ARTIFACT_SIZE_BYTES=26214400
+    restart: unless-stopped
+
+volumes:
+  observatory-data:

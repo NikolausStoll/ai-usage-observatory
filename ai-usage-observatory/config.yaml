@@ -1,0 +1,22 @@
+name: "AI Usage Observatory"
+version: "0.1.0"
+slug: "ai-usage-observatory"
+description: "Observability and cost analysis for AI usage across private applications"
+url: "https://github.com/NikolausStoll/ai-observatory"
+arch:
+  - amd64
+  - aarch64
+startup: application
+boot: auto
+init: false
+ingress: true
+ingress_port: 8096
+ports:
+  8096/tcp: 8096
+ports_description:
+  8096/tcp: "AI Usage Observatory Web UI and ingestion API"
+image: "ghcr.io/nikolausstoll/ai-usage-observatory:{version}"
+options: {}
+schema: {}
+map:
+  - data:rw
