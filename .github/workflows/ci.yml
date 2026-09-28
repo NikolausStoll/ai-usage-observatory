@@ -37,6 +37,64 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Test client package
+        run: npm test
+        working-directory: packages/ai-observatory-client
+
+  publish-client:
+    needs: test
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect client version change
+        id: client
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./packages/ai-observatory-client/package.json').version")"
+          TAG="client-v${VERSION}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG already exists — skip client publish"
+            exit 0
+          fi
+
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+
+      - name: Pack and publish client release
+        if: steps.client.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.client.outputs.version }}
+          TAG: ${{ steps.client.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd packages/ai-observatory-client
+          npm pack
+          TARBALL="ai-observatory-client-${VERSION}.tgz"
+          mv "nikolausstoll-ai-observatory-client-${VERSION}.tgz" "$TARBALL"
+
+          gh release create "$TAG" "$TARBALL" \
+            --title "Client ${VERSION}" \
+            --notes "$(printf '%s\n' \
+              "Install:" \
+              "" \
+              '```bash' \
+              "npm install https://github.com/NikolausStoll/ai-usage-observatory/releases/download/${TAG}/${TARBALL}" \
+              '```' \
+              "" \
+              "See packages/ai-observatory-client/README.md")"
+
   prepare-release:
     needs: test
     if: >

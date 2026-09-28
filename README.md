@@ -121,6 +121,31 @@ curl -X POST http://localhost:8096/api/v1/events \
 
 See [docs/api.md](docs/api.md) for the full API reference.
 
+## Shared client package
+
+Apps should report via `@nikolausstoll/ai-observatory-client` (fire-and-forget, never throws):
+
+```bash
+npm install https://github.com/NikolausStoll/ai-usage-observatory/releases/download/client-v0.1.0/ai-observatory-client-0.1.0.tgz
+```
+
+```js
+import { createObservatoryClient } from "@nikolausstoll/ai-observatory-client";
+
+const client = createObservatoryClient(); // AI_OBSERVATORY_URL + AI_OBSERVATORY_API_KEY
+client.reportEvent({
+  feature: "my-feature",
+  operation: "my-operation",
+  operationId: "my-feature:123:my-operation",
+  status: "success",
+  provider: "openai",
+  requestedModel: "gpt-4o-mini",
+  usage: { inputTokens: 100, outputTokens: 50 },
+});
+```
+
+Details: [packages/ai-observatory-client/README.md](packages/ai-observatory-client/README.md). CI publishes a new `client-v*` GitHub Release whenever that package version bumps.
+
 ## Development commands
 
 ```bash
