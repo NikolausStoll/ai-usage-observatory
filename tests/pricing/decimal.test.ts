@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Decimal from "decimal.js";
 import type Database from "better-sqlite3";
-import { setupTestDb, createTestApp, makeEvent, stdPricing } from "./helpers.js";
+import { setupTestDb, createTestApp, makeEvent, stdPricing } from "../helpers.js";
 import { createPricing } from "../../src/domain/pricing/pricing-service.js";
 import { ingestEvent } from "../../src/domain/events/event-service.js";
 

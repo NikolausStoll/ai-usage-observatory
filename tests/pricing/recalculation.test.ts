@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type Database from "better-sqlite3";
-import { setupTestDb, createTestApp, makeEvent, stdPricing } from "./helpers.js";
+import { setupTestDb, createTestApp, makeEvent, stdPricing } from "../helpers.js";
 import {
   createPricing,
   updatePricing,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { IngestEventSchema } from "../../src/domain/events/event-schema.js";
-import { validEvent } from "./helpers.js";
+import { validEvent } from "../helpers.js";
 
 describe("event payload validation", () => {
   describe("required fields", () => {

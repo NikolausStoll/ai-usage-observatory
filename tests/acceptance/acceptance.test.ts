@@ -1,5 +1,5 @@
 /**
- * Phase 4 acceptance tests — covers spec §24 gaps not covered by prior phases.
+ * Cross-cutting acceptance tests — covers spec §24 gaps not covered by domain suites.
  * Focuses on: §24.4 (error with HTTP 200), §24.6 (no-usage zero cost),
  * §24.10 (persistence/clean migration), and startup sequence verification.
  */
@@ -287,4 +287,4 @@ describe("§24.3 idempotency — cost not doubled on duplicate", () => {
   });
 });
 
-// §24.2 authentication is covered by tests/phase1/http-handler.test.ts
+// §24.2 authentication is covered by tests/events/http.test.ts and tests/auth/auth.test.ts

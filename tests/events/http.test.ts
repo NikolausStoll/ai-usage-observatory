@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { setupTestDb, createTestApp, createTestApiKey, validEvent, validErrorEvent } from "./helpers.js";
+import { setupTestDb, createTestApp, createTestApiKey, validEvent, validErrorEvent } from "../helpers.js";
 import type Database from "better-sqlite3";
 
 let db: Database.Database;

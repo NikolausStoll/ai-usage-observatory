@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { setupTestDb, createTestApp, createTestApiKey, validEvent, validErrorEvent } from "./helpers.js";
+import { setupTestDb, createTestApp, createTestApiKey, validEvent, validErrorEvent } from "../helpers.js";
 import { ingestEvent, getEvent } from "../../src/domain/events/event-service.js";
 import { IngestEventSchema } from "../../src/domain/events/event-schema.js";
 import type Database from "better-sqlite3";
@@ -91,7 +91,7 @@ describe("event ingestion", () => {
     expect(row["output_tokens"]).toBe(210);
   });
 
-  it("cost columns are null (Phase 2 not implemented)", () => {
+  it("cost columns are null when no pricing is configured", () => {
     ingestEvent(db, validEvent, "test-app");
     const row = db.prepare("SELECT input_cost, cached_input_cost, output_cost, total_cost, pricing_id FROM events WHERE event_id = ?")
       .get(validEvent.eventId) as Record<string, unknown>;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { setupTestDb, createTestApp, validEvent } from "./helpers.js";
+import { setupTestDb, createTestApp, validEvent } from "../helpers.js";
 import { ingestEvent } from "../../src/domain/events/event-service.js";
 import type Database from "better-sqlite3";
 

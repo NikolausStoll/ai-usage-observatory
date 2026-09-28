@@ -9,7 +9,7 @@ import {
   makePngBuffer,
   makeJpegBuffer,
   makeGifBuffer,
-} from "./helpers.js";
+} from "../helpers.js";
 import { ingestEvent } from "../../src/domain/events/event-service.js";
 import {
   uploadArtifact,

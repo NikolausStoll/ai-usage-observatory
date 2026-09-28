@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { setupTestDb, createTestApp, createTestApiKey } from "./helpers.js";
+import { setupTestDb, createTestApp, createTestApiKey } from "../helpers.js";
 import { authenticateRequest } from "../../src/domain/auth/auth.js";
 import { revokeApiKey } from "../../src/domain/applications/application-service.js";
 import type Database from "better-sqlite3";
