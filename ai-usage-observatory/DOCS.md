@@ -75,7 +75,7 @@ Authorization: Bearer <api-key>
 Content-Type: application/json
 ```
 
-See the [API documentation](https://github.com/NikolausStoll/ai-observatory/blob/main/docs/api.md) for the full event schema.
+See the [API documentation](https://github.com/NikolausStoll/ai-usage-observatory/blob/main/docs/api.md) for the full event schema.
 
 ## Pricing
 

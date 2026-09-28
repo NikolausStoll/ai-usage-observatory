@@ -39,15 +39,15 @@ Migrations run automatically at startup before any traffic is served.
 ## Docker (production / local)
 
 ```bash
-docker build -t ai-observatory .
+docker build -t ai-usage-observatory .
 
 # Named volume
-docker run -p 8096:8096 -v observatory-data:/data ai-observatory
+docker run -p 8096:8096 -v observatory-data:/data ai-usage-observatory
 
 # Host bind-mount (Home Assistant style)
 # The entrypoint chowns /data before dropping to the app user — no manual chown needed.
 mkdir -p /path/to/data
-docker run -p 8096:8096 -v /path/to/data:/data ai-observatory
+docker run -p 8096:8096 -v /path/to/data:/data ai-usage-observatory
 ```
 
 ### docker-compose
@@ -72,7 +72,7 @@ The `ai-usage-observatory/` directory contains the Home Assistant Add-on packagi
 
 To install:
 1. In Home Assistant → Settings → Add-ons → Add-on Store → ⋮ → Repositories
-2. Add `https://github.com/NikolausStoll/ai-observatory`
+2. Add `https://github.com/NikolausStoll/ai-usage-observatory`
 3. Install **AI Usage Observatory**
 4. Start the add-on and open the Web UI
 
