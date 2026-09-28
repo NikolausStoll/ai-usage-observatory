@@ -2,12 +2,12 @@
  * Production server entry point.
  * 1. Ensures data directories exist
  * 2. Runs database migrations (before serving any traffic)
- * 3. Starts the HTTP server
+ * 3. Serves client assets from dist/client, then the TanStack Start handler
  *
  * Usage: node start.mjs
  * Prefer entrypoint.mjs in containers (loads HA /data/options.json first).
  */
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,6 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env["PORT"] ?? "8096", 10);
 const DATA_DIR = process.env["DATA_DIR"] ?? "./data";
 const DB_PATH = process.env["DB_PATH"] ?? join(DATA_DIR, "observatory.sqlite");
+const CLIENT_DIR = join(__dirname, "dist/client");
 
 if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
   console.error(JSON.stringify({ level: "error", event: "config_invalid", msg: `Invalid PORT: ${process.env["PORT"]}` }));
@@ -28,6 +29,14 @@ if (!DB_PATH) {
   console.error(JSON.stringify({ level: "error", event: "config_invalid", msg: "DB_PATH must not be empty" }));
   process.exit(1);
 }
+if (!existsSync(CLIENT_DIR)) {
+  console.error(JSON.stringify({
+    level: "error",
+    event: "config_invalid",
+    msg: `Client assets missing at ${CLIENT_DIR}. Run npm run build first.`,
+  }));
+  process.exit(1);
+}
 
 function log(obj) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
@@ -39,6 +48,7 @@ log({
   port: PORT,
   dataDir: DATA_DIR,
   dbPath: DB_PATH,
+  clientDir: CLIENT_DIR,
   nodeEnv: process.env["NODE_ENV"] ?? "production",
 });
 
@@ -53,17 +63,20 @@ const { runMigrations } = await import(join(__dirname, "scripts/run-migrations.m
 runMigrations(DATA_DIR, DB_PATH);
 log({ level: "info", event: "migrations_complete" });
 
-// 3. Start HTTP server
+// 3. Start HTTP server — static client assets first, then the Start app handler.
+// Without this, /assets/*.js falls through to SSR and returns text/html (broken modules).
 const { serve } = await import("srvx/node");
+const { serveStatic } = await import("srvx/static");
 const { default: appServer } = await import(join(__dirname, "dist/server/server.js"));
 
 const server = serve({
   port: PORT,
   fetch: appServer.fetch.bind(appServer),
+  middleware: [serveStatic({ dir: CLIENT_DIR })],
 });
 
 await server.ready();
-log({ level: "info", event: "listening", port: PORT });
+log({ level: "info", event: "listening", port: PORT, staticDir: CLIENT_DIR });
 
 let isShuttingDown = false;
 
