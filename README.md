@@ -134,4 +134,20 @@ npm run seed         # create app + API key
 
 ## Releases
 
-On every push to `main`, GitHub Actions runs tests and typecheck. When those pass **and** `ai-usage-observatory/config.yaml` `version` changed, the workflow creates a matching git tag and publishes `ghcr.io/nikolausstoll/ai-usage-observatory:<version>` (plus `:latest`).
+**Single source of truth:** `ai-usage-observatory/config.yaml` → `version`.
+
+Home Assistant installs exactly:
+
+```text
+ghcr.io/nikolausstoll/ai-usage-observatory:<that-version>
+```
+
+So `package.json` `version` must always match. CI fails on mismatch (`npm run check:version`).
+
+### How to cut a release
+
+1. Bump **both** `ai-usage-observatory/config.yaml` and `package.json` to the same new version in one commit on `main`.
+2. Push. CI runs tests → builds/pushes the GHCR image for that version → verifies the manifest → only then creates the git tag.
+3. Wait until the workflow is green before installing/updating the add-on in Home Assistant (there is a short window where git already has the new version but the image is still building).
+
+Manual republish of the current version: Actions → **CI** → **Run workflow**.
