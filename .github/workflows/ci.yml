@@ -11,6 +11,9 @@ permissions:
   contents: read
   packages: write
 
+env:
+  REGISTRY_IMAGE: ghcr.io/nikolausstoll/ai-usage-observatory
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -34,15 +37,15 @@ jobs:
       - name: Test
         run: npm test
 
-  release:
+  prepare-release:
     needs: test
     if: >
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
+    outputs:
+      changed: ${{ steps.version.outputs.changed }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,7 +81,6 @@ jobs:
           echo "Old version: ${OLD_VERSION:-<none>}"
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-          # Manual dispatch always rebuilds/republishes the current config version.
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -89,52 +91,123 @@ jobs:
             exit 0
           fi
 
-          # Version bumped on main → publish image (even if a git tag already exists
-          # from a partial previous run). Tag is created only after a successful push.
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Set up QEMU
-        if: steps.version.outputs.changed == 'true'
-        uses: docker/setup-qemu-action@v3
+  # Native builds only — QEMU arm64 dies on `npm ci` (Illegal instruction) with Node.
+  build:
+    needs: prepare-release
+    if: needs.prepare-release.outputs.changed == 'true'
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
-        if: steps.version.outputs.changed == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
-        if: steps.version.outputs.changed == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
-        if: steps.version.outputs.changed == 'true'
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ai-usage-observatory/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
-          tags: |
-            ghcr.io/nikolausstoll/ai-usage-observatory:latest
-            ghcr.io/nikolausstoll/ai-usage-observatory:${{ steps.version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs:
+      - prepare-release
+      - build
+    if: needs.prepare-release.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifest
+        working-directory: /tmp/digests
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            -t "${REGISTRY_IMAGE}:latest" \
+            -t "${REGISTRY_IMAGE}:${VERSION}" \
+            $(printf "${REGISTRY_IMAGE}@sha256:%s " *)
 
       - name: Verify published image manifest
-        if: steps.version.outputs.changed == 'true'
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          IMAGE="ghcr.io/nikolausstoll/ai-usage-observatory:${VERSION}"
+          IMAGE="${REGISTRY_IMAGE}:${VERSION}"
           docker buildx imagetools inspect "$IMAGE"
           echo "Verified $IMAGE is available for Home Assistant"
 
       - name: Create git tag
-        if: steps.version.outputs.changed == 'true'
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git rev-parse "$VERSION" >/dev/null 2>&1; then
