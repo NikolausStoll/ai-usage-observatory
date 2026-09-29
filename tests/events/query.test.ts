@@ -58,6 +58,15 @@ describe("listEvents", () => {
     expect(r2.items[0]!.applicationId).toBe("app-2");
   });
 
+  it("filters by application name substring (case-insensitive)", () => {
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000001" }), "app-1");
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000002" }), "app-2");
+
+    const r = listEvents(db, { application: "app o" });
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0]!.applicationName).toBe("App One");
+  });
+
   it("filters by status", () => {
     ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000001", status: "success" }), "app-1");
     ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000002", status: "error" }), "app-1");
@@ -75,21 +84,60 @@ describe("listEvents", () => {
     expect(r.items).toHaveLength(1);
   });
 
-  it("filters by feature", () => {
-    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000001", feature: "feat-a" }), "app-1");
-    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000002", feature: "feat-b" }), "app-1");
+  it("filters by feature and operation", () => {
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000001", feature: "feat-a", operation: "op-1" }), "app-1");
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000002", feature: "feat-a", operation: "op-2" }), "app-1");
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000003", feature: "feat-b", operation: "op-1" }), "app-1");
 
-    const r = listEvents(db, { feature: "feat-b" });
-    expect(r.items).toHaveLength(1);
+    const byFeature = listEvents(db, { feature: "feat-a" });
+    expect(byFeature.items).toHaveLength(2);
+
+    const byPair = listEvents(db, { feature: "feat-a", operation: "op-2" });
+    expect(byPair.items).toHaveLength(1);
+    expect(byPair.items[0]!.operation).toBe("op-2");
   });
 
-  it("filters by provider", () => {
-    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000001", provider: "openai" }), "app-1");
-    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000002", provider: "anthropic" }), "app-1");
+  it("filters by requested model", () => {
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000001", requestedModel: "gpt-4" }), "app-1");
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000002", requestedModel: "gpt-4.1-mini" }), "app-1");
 
-    const r = listEvents(db, { provider: "anthropic" });
+    const r = listEvents(db, { requestedModel: "gpt-4.1-mini" });
     expect(r.items).toHaveLength(1);
-    expect(r.items[0]!.provider).toBe("anthropic");
+    expect(r.items[0]!.requestedModel).toBe("gpt-4.1-mini");
+  });
+
+  it("returns filter facets from used values", () => {
+    ingestEvent(
+      db,
+      makeEvent({
+        eventId: "00000000-0000-4000-8000-000000000001",
+        environment: "production",
+        feature: "chat",
+        operation: "complete",
+        requestedModel: "gpt-4",
+      }),
+      "app-1"
+    );
+    ingestEvent(
+      db,
+      makeEvent({
+        eventId: "00000000-0000-4000-8000-000000000002",
+        environment: "staging",
+        feature: "chat",
+        operation: "stream",
+        requestedModel: "gpt-4.1-mini",
+      }),
+      "app-2"
+    );
+
+    const { facets } = listEvents(db);
+    expect(facets.applications.map((a) => a.name).sort()).toEqual(["App One", "App Two"]);
+    expect(facets.environments).toEqual(["production", "staging"]);
+    expect(facets.models).toEqual(["gpt-4", "gpt-4.1-mini"]);
+    expect(facets.featureOps).toEqual([
+      { feature: "chat", operation: "complete" },
+      { feature: "chat", operation: "stream" },
+    ]);
   });
 
   it("paginates correctly", () => {

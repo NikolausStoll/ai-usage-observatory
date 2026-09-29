@@ -19,10 +19,6 @@ function DashboardPage() {
   const stats: DashboardStats = Route.useLoaderData();
   const navigate = useNavigate();
   const cost = formatCostDisplay(stats.totalCost);
-  const successRate =
-    stats.totalEvents > 0
-      ? ((stats.successEvents / stats.totalEvents) * 100).toFixed(1)
-      : null;
 
   return (
     <div className="page">
@@ -31,45 +27,40 @@ function DashboardPage() {
       <div className="overview">
         <div className="overview__metric overview__metric--primary">
           <div className="overview__value num">{stats.totalEvents.toLocaleString()}</div>
-          <div className="overview__label">Total events</div>
+          <div className="overview__label">Events</div>
         </div>
 
         <div className="overview__metric overview__metric--primary">
           <div className="overview__value num" title={cost.title}>{cost.label}</div>
-          <div className="overview__label">Estimated cost</div>
+          <div className="overview__label">Est. cost</div>
         </div>
 
-        <div className="overview__metric overview__metric--span">
-          <div className="overview__label" style={{ marginTop: 0, marginBottom: "var(--space-2)" }}>
-            Token usage
+        <div className="overview__metric">
+          <div className="overview__label" style={{ marginTop: 0, marginBottom: 4 }}>
+            Tokens
           </div>
-          <div className="overview__sub">
-            <div className="overview__sub-item">
-              <span className="overview__sub-value">{stats.totalInputTokens.toLocaleString()}</span>
-              <span className="overview__sub-label">Input</span>
-            </div>
-            <div className="overview__sub-item">
-              <span className="overview__sub-value">{stats.totalOutputTokens.toLocaleString()}</span>
-              <span className="overview__sub-label">Output</span>
-            </div>
+          <div className="overview__sub overview__sub--inline">
+            <span className="overview__sub-inline num">
+              <strong>{stats.totalInputTokens.toLocaleString()}</strong>
+              <span className="text-muted"> in</span>
+            </span>
+            <span className="overview__sub-sep">·</span>
+            <span className="overview__sub-inline num">
+              <strong>{stats.totalOutputTokens.toLocaleString()}</strong>
+              <span className="text-muted"> out</span>
+            </span>
           </div>
         </div>
 
         <div className="overview__metric overview__outcome">
-          <div className="overview__outcome-row">
-            <span className="text-success">Success</span>
-            <span className="num text-success">{stats.successEvents.toLocaleString()}</span>
+          <div className="overview__label" style={{ marginTop: 0, marginBottom: 4 }}>
+            Health
           </div>
-          <div className="overview__outcome-row">
-            <span className="text-error">Errors</span>
-            <span className="num text-error">{stats.errorEvents.toLocaleString()}</span>
+          <div className="overview__health num">
+            <span className="text-success">{stats.successEvents.toLocaleString()} ok</span>
+            <span className="overview__sub-sep">·</span>
+            <span className="text-error">{stats.errorEvents.toLocaleString()} err</span>
           </div>
-          {successRate != null && (
-            <div className="overview__outcome-row text-muted">
-              <span>Success rate</span>
-              <span className="num">{successRate}%</span>
-            </div>
-          )}
         </div>
       </div>
 

@@ -312,164 +312,6 @@ function PricingPage() {
 
       {affectedMsg && <div className="success-box">{affectedMsg}</div>}
 
-      <section className="admin-panel section">
-        <h2 className="section-title">Import from JSON</h2>
-        {importSuccess && <div className="success-box">{importSuccess}</div>}
-        {importError && <div className="error-box">{importError}</div>}
-        {!importPreview && (
-          <div className="stack">
-            <div className="cluster import-actions">
-              <label className="btn-file">
-                <span className="btn">
-                  {importLoading ? "Parsing…" : "Choose JSON file"}
-                </span>
-                <input
-                  type="file"
-                  accept=".json"
-                  disabled={importLoading}
-                  onChange={handleImportFileChange}
-                />
-              </label>
-              <button
-                type="button"
-                className="btn"
-                disabled={importLoading}
-                onClick={() => setShowPasteArea((v) => !v)}
-              >
-                {showPasteArea ? "Cancel paste" : "Paste JSON"}
-              </button>
-            </div>
-            {showPasteArea && (
-              <div className="stack">
-                <textarea
-                  rows={10}
-                  className="mono import-paste"
-                  placeholder='{"provider": "...", "prices": [...]}'
-                  value={pasteText}
-                  onChange={(e) => setPasteText(e.target.value)}
-                  disabled={importLoading}
-                />
-                <div>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={importLoading || !pasteText.trim()}
-                    onClick={handlePasteSubmit}
-                  >
-                    {importLoading ? "Parsing…" : "Preview import"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        {importPreview && (
-          <div className="card" style={{ marginTop: "var(--space-2)", marginBottom: 0 }}>
-            <div className="text-sm text-secondary" style={{ marginBottom: "var(--space-2)" }}>
-              Provider: <span className="mono">{importPreview.provider}</span>
-              {importPreview.source && (
-                <> · Source: <span className="mono">{importPreview.source}</span></>
-              )}
-            </div>
-            <div className="cluster text-sm" style={{ marginBottom: "var(--space-3)" }}>
-              <span className="text-success">✓ {importPreview.totalNew} new</span>
-              <span className="text-muted">= {importPreview.totalUnchanged} unchanged</span>
-              {importPreview.totalConflicts > 0 && (
-                <span className="text-error">
-                  ✗ {importPreview.totalConflicts} conflict{importPreview.totalConflicts !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            {importPreview.totalConflicts > 0 && (
-              <div className="error-box" style={{ marginBottom: "var(--space-2)" }}>
-                Conflicts detected — resolve before importing. Edit or remove conflicting records first.
-              </div>
-            )}
-            <div className="table-wrap pricing-desktop" style={{ marginBottom: "var(--space-3)" }}>
-              <table className="pricing-table">
-                <thead>
-                  <tr>
-                    <th>Model</th>
-                    <th>Valid From</th>
-                    <th>Valid Until</th>
-                    <th className="num-col">Input/M</th>
-                    <th className="num-col">Cached/M</th>
-                    <th className="num-col">Output/M</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {importPreview.entries.map((e, i) => (
-                    <tr key={i}>
-                      <td className="mono pricing-table__model">{e.entry.model}</td>
-                      <td className="text-sm">{formatDateDe(e.entry.validFrom)}</td>
-                      <td><ValidityUntil until={e.entry.validUntil} /></td>
-                      <td className="num-col"><PriceCell value={e.entry.inputPerMillion} /></td>
-                      <td className="num-col"><PriceCell value={e.entry.cachedInputPerMillion} /></td>
-                      <td className="num-col"><PriceCell value={e.entry.outputPerMillion} /></td>
-                      <td>
-                        {e.status === "new" && <Badge variant="success">New</Badge>}
-                        {e.status === "unchanged" && <Badge variant="neutral">Unchanged</Badge>}
-                        {e.status === "conflict" && (
-                          <Badge variant="danger" title={e.conflictReason}>Conflict</Badge>
-                        )}
-                        {e.status === "conflict" && e.conflictReason && (
-                          <div className="text-error text-sm" style={{ maxWidth: 200, marginTop: 4 }}>
-                            {e.conflictReason}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="pricing-mobile stack" style={{ marginBottom: "var(--space-3)" }}>
-              {importPreview.entries.map((e, i) => (
-                <div key={i} className="pricing-card">
-                  <div className="pricing-card__top">
-                    <span className="pricing-card__model mono">{e.entry.model}</span>
-                    {e.status === "new" && <Badge variant="success">New</Badge>}
-                    {e.status === "unchanged" && <Badge variant="neutral">Unchanged</Badge>}
-                    {e.status === "conflict" && <Badge variant="danger">Conflict</Badge>}
-                  </div>
-                  <div className="pricing-card__prices">
-                    <div>
-                      <span className="pricing-card__label">Input / 1M</span>
-                      <PriceCell value={e.entry.inputPerMillion} />
-                    </div>
-                    <div>
-                      <span className="pricing-card__label">Cached / 1M</span>
-                      <PriceCell value={e.entry.cachedInputPerMillion} />
-                    </div>
-                    <div>
-                      <span className="pricing-card__label">Output / 1M</span>
-                      <PriceCell value={e.entry.outputPerMillion} />
-                    </div>
-                  </div>
-                  <div className="pricing-card__validity text-sm">
-                    <span className="text-muted">From {formatDateDe(e.entry.validFrom)}</span>
-                    <span className="text-muted">·</span>
-                    <ValidityUntil until={e.entry.validUntil} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="cluster">
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={importLoading || importPreview.totalNew === 0 || importPreview.totalConflicts > 0}
-                onClick={handleImportConfirm}
-              >
-                {importLoading ? "Importing…" : `Import ${importPreview.totalNew} record${importPreview.totalNew !== 1 ? "s" : ""}`}
-              </button>
-              <button type="button" className="btn" onClick={handleImportCancel}>Cancel</button>
-            </div>
-          </div>
-        )}
-      </section>
-
       {missing.length > 0 && (
         <div className="section">
           <h2 className="section-title text-warn">
@@ -603,6 +445,169 @@ function PricingPage() {
           </div>
         )}
       </div>
+
+      <section className="section import-section">
+        <div className="import-section__header">
+          <h2 className="section-title">Import</h2>
+          <p className="import-section__hint text-muted text-sm">
+            Add or update catalogue prices from a JSON file.
+          </p>
+        </div>
+        {importSuccess && <div className="success-box">{importSuccess}</div>}
+        {importError && <div className="error-box">{importError}</div>}
+        {!importPreview && (
+          <div className="stack">
+            <div className="import-actions">
+              <label className="btn-file">
+                <span className="btn">
+                  {importLoading ? "Parsing…" : "Choose JSON file"}
+                </span>
+                <input
+                  type="file"
+                  accept=".json"
+                  disabled={importLoading}
+                  onChange={handleImportFileChange}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn"
+                disabled={importLoading}
+                onClick={() => setShowPasteArea((v) => !v)}
+              >
+                {showPasteArea ? "Cancel paste" : "Paste JSON"}
+              </button>
+            </div>
+            {showPasteArea && (
+              <div className="import-paste-panel stack">
+                <textarea
+                  rows={8}
+                  className="mono import-paste"
+                  placeholder='{"provider": "...", "prices": [...]}'
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  disabled={importLoading}
+                />
+                <div className="import-paste-panel__actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={importLoading || !pasteText.trim()}
+                    onClick={handlePasteSubmit}
+                  >
+                    {importLoading ? "Parsing…" : "Preview import"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {importPreview && (
+          <div className="import-preview">
+            <div className="text-sm text-secondary" style={{ marginBottom: "var(--space-2)" }}>
+              Provider: <span className="mono">{importPreview.provider}</span>
+              {importPreview.source && (
+                <> · Source: <span className="mono">{importPreview.source}</span></>
+              )}
+            </div>
+            <div className="cluster text-sm" style={{ marginBottom: "var(--space-3)" }}>
+              <span className="text-success">✓ {importPreview.totalNew} new</span>
+              <span className="text-muted">= {importPreview.totalUnchanged} unchanged</span>
+              {importPreview.totalConflicts > 0 && (
+                <span className="text-error">
+                  ✗ {importPreview.totalConflicts} conflict{importPreview.totalConflicts !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            {importPreview.totalConflicts > 0 && (
+              <div className="error-box" style={{ marginBottom: "var(--space-2)" }}>
+                Conflicts detected — resolve before importing. Edit or remove conflicting records first.
+              </div>
+            )}
+            <div className="table-wrap pricing-desktop" style={{ marginBottom: "var(--space-3)" }}>
+              <table className="pricing-table">
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Valid From</th>
+                    <th>Valid Until</th>
+                    <th className="num-col">Input/M</th>
+                    <th className="num-col">Cached/M</th>
+                    <th className="num-col">Output/M</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.entries.map((e, i) => (
+                    <tr key={i}>
+                      <td className="mono pricing-table__model">{e.entry.model}</td>
+                      <td className="text-sm">{formatDateDe(e.entry.validFrom)}</td>
+                      <td><ValidityUntil until={e.entry.validUntil} /></td>
+                      <td className="num-col"><PriceCell value={e.entry.inputPerMillion} /></td>
+                      <td className="num-col"><PriceCell value={e.entry.cachedInputPerMillion} /></td>
+                      <td className="num-col"><PriceCell value={e.entry.outputPerMillion} /></td>
+                      <td>
+                        {e.status === "new" && <Badge variant="success">New</Badge>}
+                        {e.status === "unchanged" && <Badge variant="neutral">Unchanged</Badge>}
+                        {e.status === "conflict" && (
+                          <Badge variant="danger" title={e.conflictReason}>Conflict</Badge>
+                        )}
+                        {e.status === "conflict" && e.conflictReason && (
+                          <div className="text-error text-sm" style={{ maxWidth: 200, marginTop: 4 }}>
+                            {e.conflictReason}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="pricing-mobile stack" style={{ marginBottom: "var(--space-3)" }}>
+              {importPreview.entries.map((e, i) => (
+                <div key={i} className="pricing-card">
+                  <div className="pricing-card__top">
+                    <span className="pricing-card__model mono">{e.entry.model}</span>
+                    {e.status === "new" && <Badge variant="success">New</Badge>}
+                    {e.status === "unchanged" && <Badge variant="neutral">Unchanged</Badge>}
+                    {e.status === "conflict" && <Badge variant="danger">Conflict</Badge>}
+                  </div>
+                  <div className="pricing-card__prices">
+                    <div>
+                      <span className="pricing-card__label">Input / 1M</span>
+                      <PriceCell value={e.entry.inputPerMillion} />
+                    </div>
+                    <div>
+                      <span className="pricing-card__label">Cached / 1M</span>
+                      <PriceCell value={e.entry.cachedInputPerMillion} />
+                    </div>
+                    <div>
+                      <span className="pricing-card__label">Output / 1M</span>
+                      <PriceCell value={e.entry.outputPerMillion} />
+                    </div>
+                  </div>
+                  <div className="pricing-card__validity text-sm">
+                    <span className="text-muted">From {formatDateDe(e.entry.validFrom)}</span>
+                    <span className="text-muted">·</span>
+                    <ValidityUntil until={e.entry.validUntil} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="cluster">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={importLoading || importPreview.totalNew === 0 || importPreview.totalConflicts > 0}
+                onClick={handleImportConfirm}
+              >
+                {importLoading ? "Importing…" : `Import ${importPreview.totalNew} record${importPreview.totalNew !== 1 ? "s" : ""}`}
+              </button>
+              <button type="button" className="btn" onClick={handleImportCancel}>Cancel</button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

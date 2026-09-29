@@ -8,6 +8,7 @@ import { JsonDisplay } from "../../components/JsonDisplay.js";
 import { ArtifactViewer } from "../../components/ArtifactViewer.js";
 import { SectionHeader } from "../../components/ui/SectionHeader.js";
 import { formatDateTimeDe } from "../../lib/format-date.js";
+import { formatDurationMs, formatDurationPrecise } from "../../lib/format-duration.js";
 
 export const Route = createFileRoute("/events/$eventId")({
   loader: ({ params }) => fetchEvent({ data: params.eventId }),
@@ -84,7 +85,14 @@ function EventDetailPage() {
         <table className="meta-table">
           <tbody>
             <Row label="Timestamp" value={formatDateTimeDe(e["timestamp"] as string)} />
-            <Row label="Duration" value={<span className="num">{`${(e["duration_ms"] as number).toLocaleString("de-DE")} ms`}</span>} />
+            <Row
+              label="Duration"
+              value={
+                <span className="num" title={formatDurationPrecise(e["duration_ms"] as number)}>
+                  {formatDurationMs(e["duration_ms"] as number)}
+                </span>
+              }
+            />
             <Row label="Received at" value={formatDateTimeDe(e["received_at"] as string)} />
           </tbody>
         </table>

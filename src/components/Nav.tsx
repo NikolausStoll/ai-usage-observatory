@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { assetUrl } from "../lib/asset-url.js";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", exact: true },
@@ -54,8 +55,14 @@ export function Nav() {
       <div className="app-nav__inner">
         <div className="app-nav__bar">
           <Link to="/" className="app-nav__brand">
-            <span className="app-nav__brand-mark">AI</span>
-            Observatory
+            <img
+              src={assetUrl("favicon-32x32.png")}
+              alt=""
+              width={20}
+              height={20}
+              className="app-nav__brand-icon"
+            />
+            <span className="app-nav__brand-text">Observatory</span>
           </Link>
           <div className="app-nav__links app-nav__links--desktop">
             {renderLinks(false)}

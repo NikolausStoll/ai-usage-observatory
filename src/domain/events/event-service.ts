@@ -142,12 +142,22 @@ const SORT_COLUMNS: Record<EventSortBy, string> = {
 
 export interface EventListFilters {
   applicationId?: string;
+  /** Case-insensitive substring match against application display name. */
+  application?: string;
   status?: string;
   environment?: string;
   feature?: string;
-  provider?: string;
+  operation?: string;
+  requestedModel?: string;
   sortBy?: EventSortBy;
   sortDir?: EventSortDir;
+}
+
+export interface EventFilterFacets {
+  applications: Array<{ id: string; name: string }>;
+  environments: string[];
+  featureOps: Array<{ feature: string; operation: string }>;
+  models: string[];
 }
 
 export interface EventListResult {
@@ -155,6 +165,48 @@ export interface EventListResult {
   total: number;
   page: number;
   pageSize: number;
+  facets: EventFilterFacets;
+}
+
+export function getEventFilterFacets(db: Database.Database): EventFilterFacets {
+  const applications = db
+    .prepare(
+      `SELECT DISTINCT a.id as id, a.display_name as name
+       FROM events e
+       JOIN applications a ON a.id = e.application_id
+       ORDER BY a.display_name COLLATE NOCASE`
+    )
+    .all() as Array<{ id: string; name: string }>;
+
+  const environments = (
+    db
+      .prepare(
+        `SELECT DISTINCT environment FROM events
+         WHERE environment IS NOT NULL AND TRIM(environment) != ''
+         ORDER BY environment COLLATE NOCASE`
+      )
+      .all() as Array<{ environment: string }>
+  ).map((r) => r.environment);
+
+  const featureOps = db
+    .prepare(
+      `SELECT DISTINCT feature, operation FROM events
+       WHERE feature IS NOT NULL AND TRIM(feature) != ''
+       ORDER BY feature COLLATE NOCASE, operation COLLATE NOCASE`
+    )
+    .all() as Array<{ feature: string; operation: string }>;
+
+  const models = (
+    db
+      .prepare(
+        `SELECT DISTINCT requested_model FROM events
+         WHERE requested_model IS NOT NULL AND TRIM(requested_model) != ''
+         ORDER BY requested_model COLLATE NOCASE`
+      )
+      .all() as Array<{ requested_model: string }>
+  ).map((r) => r.requested_model);
+
+  return { applications, environments, featureOps, models };
 }
 
 export function listEvents(
@@ -169,6 +221,9 @@ export function listEvents(
   if (filters.applicationId) {
     conditions.push("e.application_id = ?");
     params.push(filters.applicationId);
+  } else if (filters.application) {
+    conditions.push("LOWER(COALESCE(a.display_name, e.application_id)) LIKE ?");
+    params.push(`%${filters.application.toLowerCase()}%`);
   }
   if (filters.status) {
     conditions.push("e.status = ?");
@@ -182,9 +237,13 @@ export function listEvents(
     conditions.push("e.feature = ?");
     params.push(filters.feature);
   }
-  if (filters.provider) {
-    conditions.push("e.provider = ?");
-    params.push(filters.provider);
+  if (filters.operation) {
+    conditions.push("e.operation = ?");
+    params.push(filters.operation);
+  }
+  if (filters.requestedModel) {
+    conditions.push("e.requested_model = ?");
+    params.push(filters.requestedModel);
   }
 
   const safePageSize = Math.min(
@@ -197,31 +256,35 @@ export function listEvents(
   const sortBy = filters.sortBy && SORT_COLUMNS[filters.sortBy] ? filters.sortBy : "timestamp";
   const sortDir = filters.sortDir === "asc" ? "ASC" : "DESC";
   const orderBy = `${SORT_COLUMNS[sortBy]} ${sortDir}`;
+  const fromClause = `FROM events e LEFT JOIN applications a ON a.id = e.application_id`;
 
-  const countRow = db.prepare(
-    `SELECT COUNT(*) as cnt FROM events e ${where}`
-  ).get(...params) as { cnt: number };
+  const countRow = db
+    .prepare(`SELECT COUNT(*) as cnt ${fromClause} ${where}`)
+    .get(...params) as { cnt: number };
   const total = countRow.cnt;
 
-  const rows = db.prepare(`
+  const rows = db
+    .prepare(
+      `
     SELECT e.event_id, e.application_id, a.display_name as application_name,
            e.status, e.environment, e.feature, e.operation,
            e.provider, e.requested_model, e.reported_model,
            e.input_tokens, e.cached_input_tokens, e.output_tokens,
            e.total_cost, e.pricing_id,
            e.timestamp, e.duration_ms
-    FROM events e
-    LEFT JOIN applications a ON a.id = e.application_id
+    ${fromClause}
     ${where}
     ORDER BY ${orderBy}
     LIMIT ? OFFSET ?
-  `).all(...params, safePageSize, offset) as Array<Record<string, unknown>>;
+  `
+    )
+    .all(...params, safePageSize, offset) as Array<Record<string, unknown>>;
 
   return {
     items: rows.map((r) => ({
       eventId: r["event_id"] as string,
       applicationId: r["application_id"] as string,
-      applicationName: (r["application_name"] as string) ?? r["application_id"] as string,
+      applicationName: (r["application_name"] as string) ?? (r["application_id"] as string),
       status: r["status"] as string,
       environment: r["environment"] as string,
       feature: r["feature"] as string,
@@ -240,6 +303,7 @@ export function listEvents(
     total,
     page,
     pageSize: safePageSize,
+    facets: getEventFilterFacets(db),
   };
 }
 

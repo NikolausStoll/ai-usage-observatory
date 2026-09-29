@@ -3,6 +3,7 @@ import { EventStatusBadge } from "./EventStatusBadge.js";
 import { CostDisplay } from "./CostDisplay.js";
 import { ModelLabel } from "./ModelLabel.js";
 import { formatDateTimeDe, formatDateTimeShortDe } from "../lib/format-date.js";
+import { formatDurationMs, formatDurationPrecise } from "../lib/format-duration.js";
 
 export interface EventListCardData {
   eventId: string;
@@ -18,6 +19,8 @@ export interface EventListCardData {
   outputTokens?: number | null;
   totalCost: string | null;
   timestamp: string;
+  /** Optional — omitted on compact dashboard recent events. */
+  durationMs?: number | null;
 }
 
 function fmtTok(n: number | null | undefined): string {
@@ -34,6 +37,10 @@ export function EventListCard({ event }: { event: EventListCardData }) {
 
   const featureOp = [event.feature, event.operation].filter(Boolean).join(" · ");
   const appEnv = [event.applicationName, event.environment].filter(Boolean).join(" · ");
+  const durationLabel =
+    event.durationMs != null ? formatDurationMs(event.durationMs) : null;
+  const durationTitle =
+    event.durationMs != null ? formatDurationPrecise(event.durationMs) : "";
 
   return (
     <Link
@@ -56,13 +63,15 @@ export function EventListCard({ event }: { event: EventListCardData }) {
 
       <div className="event-card__metrics">
         {hasTokens ? (
-          <div className="event-card__tokens num" title="Input / Cached / Output">
-            <span className="event-card__tok-label">tok</span>
-            <span>{fmtTok(event.inputTokens)}</span>
-            <span className="event-card__sep">/</span>
-            <span>{fmtTok(event.cachedInputTokens)}</span>
-            <span className="event-card__sep">/</span>
-            <span>{fmtTok(event.outputTokens)}</span>
+          <div
+            className="event-card__tokens num"
+            title="Input · Cached · Output"
+          >
+            <span>{fmtTok(event.inputTokens)} in</span>
+            <span className="event-card__sep">·</span>
+            <span>{fmtTok(event.cachedInputTokens)} cached</span>
+            <span className="event-card__sep">·</span>
+            <span>{fmtTok(event.outputTokens)} out</span>
           </div>
         ) : (
           <span className="text-muted text-sm">No tokens</span>
@@ -70,11 +79,23 @@ export function EventListCard({ event }: { event: EventListCardData }) {
         <CostDisplay usd={event.totalCost} className="event-card__cost" />
       </div>
 
-      <div
-        className="event-card__time"
-        title={formatDateTimeDe(event.timestamp)}
-      >
-        {formatDateTimeShortDe(event.timestamp)}
+      <div className="event-card__foot">
+        {durationLabel ? (
+          <>
+            <span className="event-card__duration num" title={durationTitle}>
+              {durationLabel}
+            </span>
+            <span className="event-card__sep" aria-hidden>
+              ·
+            </span>
+          </>
+        ) : null}
+        <span
+          className="event-card__time"
+          title={formatDateTimeDe(event.timestamp)}
+        >
+          {formatDateTimeShortDe(event.timestamp)}
+        </span>
       </div>
     </Link>
   );
