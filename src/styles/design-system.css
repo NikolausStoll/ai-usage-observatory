@@ -945,6 +945,55 @@ tr.clickable-row:hover td {
   border-style: dashed;
 }
 
+.artifact__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.artifact__thumb-wrap {
+  flex-shrink: 0;
+}
+
+.artifact__thumb-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: zoom-in;
+  border-radius: var(--radius-sm);
+  line-height: 0;
+}
+
+.artifact__thumb-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.artifact__thumb {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+}
+
+.artifact__thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.artifact__main {
+  flex: 1;
+  min-width: 0;
+}
+
 .artifact__header {
   display: flex;
   align-items: flex-start;
@@ -955,7 +1004,7 @@ tr.clickable-row:hover td {
 
 .artifact__meta {
   flex: 1;
-  min-width: 200px;
+  min-width: 160px;
 }
 
 .artifact__title {
@@ -985,11 +1034,49 @@ tr.clickable-row:hover td {
   gap: var(--space-2);
 }
 
-.artifact__img {
+.artifact-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(0, 0, 0, 0.78);
+  cursor: zoom-out;
+}
+
+.artifact-lightbox__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: min(96vw, 1200px);
+  max-height: 96vh;
+  cursor: default;
+}
+
+.artifact-lightbox__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.artifact-lightbox__title {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artifact-lightbox__img {
+  display: block;
   max-width: 100%;
-  max-height: 600px;
-  border: 1px solid var(--border);
+  max-height: calc(96vh - 3.5rem);
+  object-fit: contain;
   border-radius: var(--radius-sm);
+  background: var(--bg);
 }
 
 .artifact-hint,
