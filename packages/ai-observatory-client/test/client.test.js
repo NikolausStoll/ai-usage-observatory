@@ -161,4 +161,107 @@ describe("ai-observatory-client", () => {
     );
     assert.equal(warnings.length, 1);
   });
+
+  it("uploadArtifact is a no-op when disabled", async () => {
+    let called = false;
+    const client = createObservatoryClient({
+      fetch: async () => {
+        called = true;
+        return new Response("{}", { status: 200 });
+      },
+    });
+    const result = await client.uploadArtifact("evt-1", {
+      role: "input",
+      data: Buffer.from("x"),
+    });
+    assert.equal(result, null);
+    assert.equal(called, false);
+  });
+
+  it("uploadArtifact posts multipart form data", async () => {
+    /** @type {{ url?: string, init?: RequestInit }} */
+    const seen = {};
+    const client = createObservatoryClient({
+      baseUrl: "http://obs.example/",
+      apiKey: "obs_key",
+      fetch: async (url, init) => {
+        seen.url = String(url);
+        seen.init = init;
+        return new Response(
+          JSON.stringify({
+            artifactId: "a1b2c3d4-0000-4000-8000-000000000001",
+            byteSize: 5,
+            contentHash: "abc123",
+          }),
+          { status: 200 },
+        );
+      },
+    });
+
+    const result = await client.uploadArtifact("evt-99", {
+      role: "input",
+      data: Buffer.from("hello"),
+      mimeType: "text/plain",
+      filename: "hello.txt",
+      label: "page-1",
+    });
+
+    assert.equal(
+      seen.url,
+      "http://obs.example/api/v1/events/evt-99/artifacts",
+    );
+    assert.equal(seen.init?.method, "POST");
+    const headers = /** @type {Record<string, string>} */ (seen.init?.headers);
+    assert.equal(headers.Authorization, "Bearer obs_key");
+    assert.equal(headers["Content-Type"], undefined);
+    assert.ok(seen.init?.body instanceof FormData);
+    const form = /** @type {FormData} */ (seen.init.body);
+    assert.equal(form.get("role"), "input");
+    assert.equal(form.get("label"), "page-1");
+    assert.ok(form.get("file"));
+    assert.deepEqual(result, {
+      artifactId: "a1b2c3d4-0000-4000-8000-000000000001",
+      byteSize: 5,
+      contentHash: "abc123",
+    });
+  });
+
+  it("uploadArtifact returns null and warns on HTTP error", async () => {
+    const warnings = [];
+    const client = createObservatoryClient({
+      baseUrl: "http://obs.example",
+      apiKey: "key",
+      warn: (msg) => warnings.push(msg),
+      fetch: async () => new Response("nope", { status: 413 }),
+    });
+    const result = await client.uploadArtifact("evt-1", {
+      role: "output",
+      data: Buffer.from("big"),
+    });
+    assert.equal(result, null);
+    assert.equal(warnings.length, 1);
+  });
+
+  it("reportArtifact fire-and-forget uploads", async () => {
+    /** @type {{ url?: string }} */
+    const seen = {};
+    const client = createObservatoryClient({
+      baseUrl: "http://obs.example",
+      apiKey: "key",
+      fetch: async (url) => {
+        seen.url = String(url);
+        return new Response(
+          JSON.stringify({ artifactId: "x", byteSize: 1, contentHash: "h" }),
+          { status: 200 },
+        );
+      },
+    });
+    client.reportArtifact("evt-2", {
+      role: "output",
+      data: Buffer.from("y"),
+      mimeType: "application/octet-stream",
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    assert.equal(seen.url, "http://obs.example/api/v1/events/evt-2/artifacts");
+  });
 });

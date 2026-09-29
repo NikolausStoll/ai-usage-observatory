@@ -25,6 +25,7 @@ import {
   decodeFeatureOp,
   encodeFeatureOp,
 } from "../../components/SearchableSelect.js";
+import { formatArtifactHint } from "../../components/ArtifactHint.js";
 import { formatDateTimeDe, formatDateTimeShortDe } from "../../lib/format-date.js";
 import { formatDurationMs, formatDurationPrecise } from "../../lib/format-duration.js";
 
@@ -221,6 +222,34 @@ function EventsPage() {
         <SortHeader label="Status" column="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
       ),
       cell: (info) => <EventStatusBadge status={info.getValue()} />,
+      size: 72,
+    }),
+    columnHelper.accessor("artifactCount", {
+      header: () => <span className="sort-btn" style={{ cursor: "default" }}>Art</span>,
+      cell: (info) => {
+        const hint = formatArtifactHint(
+          info.getValue(),
+          info.row.original.artifactDeletedCount
+        );
+        if (!hint) return <span className="text-muted">—</span>;
+        return (
+          <button
+            type="button"
+            className={`artifact-hint${hint.allDeleted ? " artifact-hint--deleted" : ""}`}
+            title={hint.title}
+            onClick={(e) => {
+              e.stopPropagation();
+              void navigate({
+                to: "/events/$eventId",
+                params: { eventId: info.row.original.eventId },
+                hash: "artifacts",
+              });
+            }}
+          >
+            {hint.label}
+          </button>
+        );
+      },
       size: 72,
     }),
     columnHelper.accessor("applicationName", {

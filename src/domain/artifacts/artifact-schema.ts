@@ -16,4 +16,10 @@ export interface ArtifactRecord {
   contentHash: string;
   storageKey: string;
   createdAt: string;
+  /** ISO timestamp when binary was soft-deleted; null if still available. */
+  deletedAt: string | null;
+}
+
+export function isArtifactDeleted(artifact: Pick<ArtifactRecord, "deletedAt">): boolean {
+  return artifact.deletedAt != null;
 }

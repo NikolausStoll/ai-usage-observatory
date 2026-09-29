@@ -108,6 +108,10 @@ export async function handleServeArtifact(
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
+  if (artifact.deletedAt) {
+    return Response.json({ error: "artifact_deleted" }, { status: 410 });
+  }
+
   // Verify the event belongs to this application
   const event = db
     .prepare("SELECT application_id FROM events WHERE event_id = ?")

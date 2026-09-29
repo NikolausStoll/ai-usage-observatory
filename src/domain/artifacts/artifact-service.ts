@@ -178,5 +178,34 @@ function rowToArtifactRecord(row: Record<string, unknown>): ArtifactRecord {
     contentHash: row["content_hash"] as string,
     storageKey: row["storage_key"] as string,
     createdAt: row["created_at"] as string,
+    deletedAt: (row["deleted_at"] as string | null) ?? null,
   };
+}
+
+/**
+ * Soft-delete: remove binary from storage, keep metadata row with `deleted_at`.
+ * Idempotent if already deleted.
+ */
+export async function deleteArtifact(
+  db: Database.Database,
+  storage: ArtifactStorage,
+  artifactId: string
+): Promise<ArtifactRecord | null> {
+  const artifact = getArtifact(db, artifactId);
+  if (!artifact) return null;
+  if (artifact.deletedAt) return artifact;
+
+  try {
+    await storage.delete(artifact.storageKey);
+  } catch {
+    // Binary may already be missing; still mark metadata as deleted.
+  }
+
+  const deletedAt = new Date().toISOString();
+  db.prepare("UPDATE artifacts SET deleted_at = ? WHERE artifact_id = ?").run(
+    deletedAt,
+    artifactId
+  );
+
+  return getArtifact(db, artifactId);
 }

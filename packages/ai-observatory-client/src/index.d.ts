@@ -63,6 +63,34 @@ export type ObservatoryEventInput = Omit<
     >
   >;
 
+/** Artifact role for POST /api/v1/events/{eventId}/artifacts. */
+export type ArtifactRole = "input" | "output";
+
+/** Accepted binary payloads for artifact upload. */
+export type ArtifactBinary =
+  | Buffer
+  | Uint8Array
+  | ArrayBuffer
+  | Blob;
+
+export interface UploadArtifactInput {
+  role: ArtifactRole;
+  /** Binary file contents. */
+  data: ArtifactBinary;
+  /** MIME type (defaults to application/octet-stream). */
+  mimeType?: string;
+  /** Original filename sent as multipart filename. */
+  filename?: string;
+  /** Optional application label (e.g. `recipe-page-1`). */
+  label?: string;
+}
+
+export interface UploadArtifactResult {
+  artifactId: string;
+  byteSize: number;
+  contentHash: string;
+}
+
 export interface ObservatoryClientOptions {
   /** Base URL of the Observatory (no trailing slash). Defaults to `AI_OBSERVATORY_URL`. */
   baseUrl?: string | null;
@@ -96,6 +124,18 @@ export interface ObservatoryClient {
    * then `report`. No-op when disabled.
    */
   reportEvent(partial: ObservatoryEventInput): void;
+  /**
+   * Upload an artifact for an existing event.
+   * Never throws; returns `null` when disabled or on failure.
+   */
+  uploadArtifact(
+    eventId: string,
+    input: UploadArtifactInput,
+  ): Promise<UploadArtifactResult | null>;
+  /**
+   * Fire-and-forget artifact upload. No-op when disabled.
+   */
+  reportArtifact(eventId: string, input: UploadArtifactInput): void;
 }
 
 /** Read config from options / env and return a client. */

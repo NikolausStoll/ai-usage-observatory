@@ -35,4 +35,8 @@ export interface EventListItem {
   pricingId: string | null;
   timestamp: string;
   durationMs: number;
+  /** Total artifacts for the event (including soft-deleted). */
+  artifactCount: number;
+  /** Soft-deleted artifacts still listed in metadata. */
+  artifactDeletedCount: number;
 }

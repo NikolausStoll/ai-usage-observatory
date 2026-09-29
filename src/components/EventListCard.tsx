@@ -1,7 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { EventStatusBadge } from "./EventStatusBadge.js";
 import { CostDisplay } from "./CostDisplay.js";
 import { ModelLabel } from "./ModelLabel.js";
+import { formatArtifactHint } from "./ArtifactHint.js";
 import { formatDateTimeDe, formatDateTimeShortDe } from "../lib/format-date.js";
 import { formatDurationMs, formatDurationPrecise } from "../lib/format-duration.js";
 
@@ -21,6 +22,8 @@ export interface EventListCardData {
   timestamp: string;
   /** Optional — omitted on compact dashboard recent events. */
   durationMs?: number | null;
+  artifactCount?: number;
+  artifactDeletedCount?: number;
 }
 
 function fmtTok(n: number | null | undefined): string {
@@ -30,6 +33,7 @@ function fmtTok(n: number | null | undefined): string {
 
 /** Mobile / compact event list item — navigates to event detail. */
 export function EventListCard({ event }: { event: EventListCardData }) {
+  const navigate = useNavigate();
   const hasTokens =
     event.inputTokens != null ||
     event.cachedInputTokens != null ||
@@ -41,12 +45,31 @@ export function EventListCard({ event }: { event: EventListCardData }) {
     event.durationMs != null ? formatDurationMs(event.durationMs) : null;
   const durationTitle =
     event.durationMs != null ? formatDurationPrecise(event.durationMs) : "";
+  const artifactHint = formatArtifactHint(
+    event.artifactCount ?? 0,
+    event.artifactDeletedCount ?? 0
+  );
+
+  function openDetail(hash?: string) {
+    void navigate({
+      to: "/events/$eventId",
+      params: { eventId: event.eventId },
+      hash,
+    });
+  }
 
   return (
-    <Link
-      to="/events/$eventId"
-      params={{ eventId: event.eventId }}
+    <div
       className="event-card"
+      role="link"
+      tabIndex={0}
+      onClick={() => openDetail()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDetail();
+        }
+      }}
     >
       <div className="event-card__top">
         <EventStatusBadge status={event.status} />
@@ -80,6 +103,24 @@ export function EventListCard({ event }: { event: EventListCardData }) {
       </div>
 
       <div className="event-card__foot">
+        {artifactHint ? (
+          <>
+            <button
+              type="button"
+              className={`event-card__artifacts${artifactHint.allDeleted ? " event-card__artifacts--deleted" : ""}`}
+              title={artifactHint.title}
+              onClick={(e) => {
+                e.stopPropagation();
+                openDetail("artifacts");
+              }}
+            >
+              {artifactHint.label}
+            </button>
+            <span className="event-card__sep" aria-hidden>
+              ·
+            </span>
+          </>
+        ) : null}
         {durationLabel ? (
           <>
             <span className="event-card__duration num" title={durationTitle}>
@@ -97,6 +138,6 @@ export function EventListCard({ event }: { event: EventListCardData }) {
           {formatDateTimeShortDe(event.timestamp)}
         </span>
       </div>
-    </Link>
+    </div>
   );
 }

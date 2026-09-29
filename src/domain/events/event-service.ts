@@ -256,7 +256,17 @@ export function listEvents(
   const sortBy = filters.sortBy && SORT_COLUMNS[filters.sortBy] ? filters.sortBy : "timestamp";
   const sortDir = filters.sortDir === "asc" ? "ASC" : "DESC";
   const orderBy = `${SORT_COLUMNS[sortBy]} ${sortDir}`;
-  const fromClause = `FROM events e LEFT JOIN applications a ON a.id = e.application_id`;
+  const fromClause = `
+    FROM events e
+    LEFT JOIN applications a ON a.id = e.application_id
+    LEFT JOIN (
+      SELECT event_id,
+             COUNT(*) AS artifact_count,
+             SUM(CASE WHEN deleted_at IS NOT NULL THEN 1 ELSE 0 END) AS artifact_deleted_count
+      FROM artifacts
+      GROUP BY event_id
+    ) ac ON ac.event_id = e.event_id
+  `;
 
   const countRow = db
     .prepare(`SELECT COUNT(*) as cnt ${fromClause} ${where}`)
@@ -271,7 +281,9 @@ export function listEvents(
            e.provider, e.requested_model, e.reported_model,
            e.input_tokens, e.cached_input_tokens, e.output_tokens,
            e.total_cost, e.pricing_id,
-           e.timestamp, e.duration_ms
+           e.timestamp, e.duration_ms,
+           COALESCE(ac.artifact_count, 0) AS artifact_count,
+           COALESCE(ac.artifact_deleted_count, 0) AS artifact_deleted_count
     ${fromClause}
     ${where}
     ORDER BY ${orderBy}
@@ -299,6 +311,8 @@ export function listEvents(
       pricingId: r["pricing_id"] as string | null,
       timestamp: r["timestamp"] as string,
       durationMs: r["duration_ms"] as number,
+      artifactCount: Number(r["artifact_count"] ?? 0),
+      artifactDeletedCount: Number(r["artifact_deleted_count"] ?? 0),
     })),
     total,
     page,

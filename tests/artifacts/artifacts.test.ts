@@ -15,7 +15,9 @@ import {
   uploadArtifact,
   getArtifact,
   listArtifactsForEvent,
+  deleteArtifact,
 } from "../../src/domain/artifacts/artifact-service.js";
+import { listEvents } from "../../src/domain/events/event-service.js";
 
 let db: Database.Database;
 let storage: MemoryArtifactStorage;
@@ -225,5 +227,67 @@ describe("artifact retrieval", () => {
     const record = getArtifact(db, result.artifactId);
     const retrieved = await storage.retrieve(record!.storageKey);
     expect(retrieved).toEqual(data);
+  });
+});
+
+describe("artifact soft delete", () => {
+  it("removes binary but keeps metadata as deleted", async () => {
+    const eventId = ingestTestEvent();
+    const data = Buffer.from("to be deleted");
+    const result = await uploadArtifact(db, storage, {
+      eventId,
+      role: "output",
+      mimeType: "text/plain",
+      originalFilename: "out.txt",
+      data,
+    });
+
+    const deleted = await deleteArtifact(db, storage, result.artifactId);
+    expect(deleted).not.toBeNull();
+    expect(deleted!.deletedAt).toBeTruthy();
+    expect(deleted!.byteSize).toBe(data.length);
+    expect(deleted!.originalFilename).toBe("out.txt");
+
+    await expect(storage.retrieve(result.artifactId)).rejects.toThrow();
+
+    const listed = listArtifactsForEvent(db, eventId);
+    expect(listed).toHaveLength(1);
+    expect(listed[0]!.deletedAt).toBeTruthy();
+  });
+
+  it("is idempotent when already deleted", async () => {
+    const eventId = ingestTestEvent();
+    const result = await uploadArtifact(db, storage, {
+      eventId,
+      role: "input",
+      mimeType: "text/plain",
+      data: Buffer.from("x"),
+    });
+    const first = await deleteArtifact(db, storage, result.artifactId);
+    const second = await deleteArtifact(db, storage, result.artifactId);
+    expect(second!.deletedAt).toBe(first!.deletedAt);
+  });
+
+  it("surface artifact counts on event list including deleted", async () => {
+    const eventId = ingestTestEvent();
+    const a1 = await uploadArtifact(db, storage, {
+      eventId,
+      role: "input",
+      mimeType: "text/plain",
+      data: Buffer.from("a"),
+    });
+    await uploadArtifact(db, storage, {
+      eventId,
+      role: "output",
+      mimeType: "text/plain",
+      data: Buffer.from("b"),
+    });
+    await deleteArtifact(db, storage, a1.artifactId);
+
+    const list = listEvents(db);
+    const item = list.items.find((i) => i.eventId === eventId);
+    expect(item).toBeTruthy();
+    expect(item!.artifactCount).toBe(2);
+    expect(item!.artifactDeletedCount).toBe(1);
   });
 });

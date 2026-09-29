@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { fetchEvent } from "../../server-functions/events.js";
 import { EventStatusBadge } from "../../components/EventStatusBadge.js";
 import { TokenUsage } from "../../components/TokenUsage.js";
@@ -9,6 +10,7 @@ import { ArtifactViewer } from "../../components/ArtifactViewer.js";
 import { SectionHeader } from "../../components/ui/SectionHeader.js";
 import { formatDateTimeDe } from "../../lib/format-date.js";
 import { formatDurationMs, formatDurationPrecise } from "../../lib/format-duration.js";
+import type { ArtifactRecord } from "../../domain/artifacts/artifact-schema.js";
 
 export const Route = createFileRoute("/events/$eventId")({
   loader: ({ params }) => fetchEvent({ data: params.eventId }),
@@ -27,9 +29,17 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  id,
+  title,
+  children,
+}: {
+  id?: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="section">
+    <div className="section" id={id}>
       <SectionHeader title={title} />
       <div className="card">{children}</div>
     </div>
@@ -38,6 +48,22 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function EventDetailPage() {
   const data = Route.useLoaderData();
+  const router = useRouter();
+  const hash = useRouterState({ select: (s) => s.location.hash });
+  const [artifacts, setArtifacts] = useState<ArtifactRecord[]>(data?.artifacts ?? []);
+
+  useEffect(() => {
+    setArtifacts(data?.artifacts ?? []);
+  }, [data]);
+
+  useEffect(() => {
+    if (hash !== "artifacts") return;
+    const el = document.getElementById("artifacts");
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [hash, artifacts.length]);
 
   if (!data) {
     return (
@@ -48,10 +74,23 @@ function EventDetailPage() {
     );
   }
 
-  const { event, artifacts } = data;
+  const { event } = data;
   const e = event as Record<string, unknown>;
 
   const hasUsage = e["input_tokens"] !== null || e["output_tokens"] !== null;
+  const activeCount = artifacts.filter((a) => a.deletedAt == null).length;
+  const deletedCount = artifacts.length - activeCount;
+  const artifactsTitle =
+    deletedCount > 0
+      ? `Artifacts (${artifacts.length} · ${deletedCount} deleted)`
+      : `Artifacts (${artifacts.length})`;
+
+  function handleArtifactDeleted(updated: ArtifactRecord) {
+    setArtifacts((prev) =>
+      prev.map((a) => (a.artifactId === updated.artifactId ? updated : a))
+    );
+    void router.invalidate();
+  }
 
   return (
     <div className="page">
@@ -183,11 +222,17 @@ function EventDetailPage() {
         </Section>
       )}
 
-      <Section title={`Artifacts (${artifacts.length})`}>
+      <Section id="artifacts" title={artifactsTitle}>
         {artifacts.length === 0 ? (
           <span className="text-muted">No artifacts</span>
         ) : (
-          artifacts.map((a) => <ArtifactViewer key={a.artifactId} artifact={a} />)
+          artifacts.map((a) => (
+            <ArtifactViewer
+              key={a.artifactId}
+              artifact={a}
+              onDeleted={handleArtifactDeleted}
+            />
+          ))
         )}
       </Section>
     </div>

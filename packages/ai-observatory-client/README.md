@@ -1,6 +1,6 @@
 # `@nikolausstoll/ai-observatory-client`
 
-Fire-and-forget Node client for [AI Usage Observatory](https://github.com/NikolausStoll/ai-usage-observatory) event ingestion (`POST /api/v1/events`).
+Fire-and-forget Node client for [AI Usage Observatory](https://github.com/NikolausStoll/ai-usage-observatory) event ingestion and artifact upload.
 
 Missing `AI_OBSERVATORY_URL` / `AI_OBSERVATORY_API_KEY` (or explicit options) disables the client — calls become no-ops. Network and HTTP failures are logged and never thrown to the caller.
 
@@ -9,7 +9,7 @@ Missing `AI_OBSERVATORY_URL` / `AI_OBSERVATORY_API_KEY` (or explicit options) di
 Prefer a release tarball (no registry auth):
 
 ```bash
-npm install https://github.com/NikolausStoll/ai-usage-observatory/releases/download/client-v0.1.0/ai-observatory-client-0.1.0.tgz
+npm install https://github.com/NikolausStoll/ai-usage-observatory/releases/download/client-v0.2.0/ai-observatory-client-0.2.0.tgz
 ```
 
 Local checkout:
@@ -28,7 +28,7 @@ import {
 
 const client = createObservatoryClient(); // reads AI_OBSERVATORY_URL + AI_OBSERVATORY_API_KEY
 
-client.reportEvent({
+const event = buildEvent({
   feature: "recipe-import",
   operation: "image-extraction",
   operationId: "recipe-import:123:image-extraction",
@@ -43,14 +43,29 @@ client.reportEvent({
   },
   metadata: { recipeId: 123 },
 });
+
+await client.postEvent(event);
+
+// After the event exists, attach binaries (images, files, …)
+await client.uploadArtifact(event.eventId, {
+  role: "input",
+  data: imageBuffer,
+  mimeType: "image/jpeg",
+  filename: "page-1.jpg",
+  label: "recipe-page-1",
+});
 ```
 
-Or build the payload yourself and call `report` / `postEvent`:
+Fire-and-forget variants:
 
 ```js
-const event = buildEvent({ /* ... */ });
-client.report(event);
-await client.postEvent(event);
+client.reportEvent({ /* ... */ });
+client.reportArtifact(eventId, {
+  role: "output",
+  data: resultBuffer,
+  mimeType: "application/json",
+  filename: "result.json",
+});
 ```
 
 ## Options
@@ -63,4 +78,21 @@ await client.postEvent(event);
 | `fetch` | `globalThis.fetch` | Injectible for tests |
 | `warn` | `console.warn` | Failure logger |
 
-Full event schema: [docs/api.md](../../docs/api.md).
+## Artifacts
+
+`uploadArtifact(eventId, input)` posts `multipart/form-data` to  
+`POST /api/v1/events/{eventId}/artifacts`.
+
+| Field | Required | Notes |
+|---|---|---|
+| `role` | yes | `input` or `output` |
+| `data` | yes | `Buffer`, `Uint8Array`, `ArrayBuffer`, or `Blob` |
+| `mimeType` | no | Defaults to `application/octet-stream` |
+| `filename` | no | Multipart filename |
+| `label` | no | App-defined label |
+
+Returns `{ artifactId, byteSize, contentHash }` or `null` on failure / when disabled.
+
+Upload artifacts **after** successful event ingestion — there is no shared transaction.
+
+Full API: [docs/api.md](../../docs/api.md).
