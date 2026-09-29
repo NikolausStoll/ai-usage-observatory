@@ -19,36 +19,42 @@ export function CostBreakdown({
 }: CostBreakdownProps) {
   let pricingState: React.ReactNode;
   if (pricingId) {
-    pricingState = <span style={{ color: "#4caf50" }}>Priced (id: {pricingId.slice(0, 8)}…)</span>;
+    pricingState = (
+      <span className="text-success">
+        Priced (id: <span className="mono">{pricingId.slice(0, 8)}…</span>)
+      </span>
+    );
   } else if (hasUsage) {
-    pricingState = <span style={{ color: "#ff9800" }}>⚠ Missing pricing</span>;
+    pricingState = <span className="text-warn">⚠ Missing pricing</span>;
   } else {
-    pricingState = <span style={{ color: "#888" }}>No usage</span>;
+    pricingState = <span className="text-muted">No usage</span>;
   }
 
   return (
     <div>
-      <div style={{ marginBottom: 8, display: "flex", gap: 12, alignItems: "baseline" }}>
+      <div className="cluster" style={{ marginBottom: "var(--space-2)" }}>
         {pricingState}
-        <span style={{ color: "#666", fontSize: "0.8em" }}>shown in cents</span>
+        <span className="text-muted text-sm">shown in cents</span>
       </div>
-      <table style={{ borderCollapse: "collapse", fontSize: "0.9em" }}>
+      <table className="meta-table">
         <tbody>
           <tr>
-            <td style={{ paddingRight: 16, color: "#888" }}>Input cost</td>
-            <td style={{ fontFamily: "monospace" }}>{formatCostCents(inputCost)}</td>
+            <td>Input cost</td>
+            <td className="mono num">{formatCostCents(inputCost)}</td>
           </tr>
           <tr>
-            <td style={{ paddingRight: 16, color: "#888" }}>Cached input cost</td>
-            <td style={{ fontFamily: "monospace" }}>{formatCostCents(cachedInputCost)}</td>
+            <td>Cached input cost</td>
+            <td className="mono num">{formatCostCents(cachedInputCost)}</td>
           </tr>
           <tr>
-            <td style={{ paddingRight: 16, color: "#888" }}>Output cost</td>
-            <td style={{ fontFamily: "monospace" }}>{formatCostCents(outputCost)}</td>
+            <td>Output cost</td>
+            <td className="mono num">{formatCostCents(outputCost)}</td>
           </tr>
-          <tr style={{ borderTop: "1px solid #333" }}>
-            <td style={{ paddingRight: 16, color: "#888", paddingTop: 4 }}>Total cost</td>
-            <td style={{ fontFamily: "monospace", fontWeight: "bold", paddingTop: 4 }}>{formatCostCents(totalCost)}</td>
+          <tr>
+            <td style={{ borderTop: "1px solid var(--border)", paddingTop: 8 }}>Total cost</td>
+            <td className="mono num" style={{ fontWeight: 600, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+              {formatCostCents(totalCost)}
+            </td>
           </tr>
         </tbody>
       </table>

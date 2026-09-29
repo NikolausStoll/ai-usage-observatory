@@ -7,26 +7,16 @@ export function JsonDisplay({ value, label }: JsonDisplayProps) {
   if (value === null || value === undefined) {
     return (
       <div>
-        {label && <span style={{ color: "#888", marginRight: 8 }}>{label}:</span>}
-        <span style={{ color: "#aaa" }}>—</span>
+        {label && <span className="text-muted" style={{ marginRight: 8 }}>{label}:</span>}
+        <span className="text-muted">—</span>
       </div>
     );
   }
 
   return (
     <div>
-      {label && <div style={{ color: "#888", fontSize: "0.85em", marginBottom: 4 }}>{label}</div>}
-      <pre style={{
-        background: "#1a1a1a",
-        color: "#e0e0e0",
-        padding: "12px",
-        borderRadius: "4px",
-        overflow: "auto",
-        fontSize: "0.82em",
-        margin: 0,
-        maxHeight: "400px",
-        border: "1px solid #333",
-      }}>
+      {label && <div className="text-muted text-sm" style={{ marginBottom: 4 }}>{label}</div>}
+      <pre className="code-block">
         {JSON.stringify(value, null, 2)}
       </pre>
     </div>

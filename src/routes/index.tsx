@@ -1,92 +1,153 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { fetchDashboardStats } from "../server-functions/dashboard.js";
 import type { DashboardStats } from "../domain/dashboard/dashboard-service.js";
-import { formatDateTimeDe } from "../lib/format-date.js";
+import { formatDateTimeDe, formatDateTimeShortDe } from "../lib/format-date.js";
+import { PageHeader } from "../components/ui/PageHeader.js";
+import { EmptyState } from "../components/ui/EmptyState.js";
+import { EventStatusBadge } from "../components/EventStatusBadge.js";
+import { EventListCard } from "../components/EventListCard.js";
+import { CostDisplay } from "../components/CostDisplay.js";
+import { ModelLabel } from "../components/ModelLabel.js";
+import { formatCostDisplay } from "../lib/format-cost.js";
 
 export const Route = createFileRoute("/")({
   loader: () => fetchDashboardStats(),
   component: DashboardPage,
 });
 
-function StatCard({ value, label }: { value: string | number; label: string }) {
-  return (
-    <div className="stat-card">
-      <div className="stat-value">{value}</div>
-      <div className="stat-label">{label}</div>
-    </div>
-  );
-}
-
 function DashboardPage() {
   const stats: DashboardStats = Route.useLoaderData();
+  const navigate = useNavigate();
+  const cost = formatCostDisplay(stats.totalCost);
+  const successRate =
+    stats.totalEvents > 0
+      ? ((stats.successEvents / stats.totalEvents) * 100).toFixed(1)
+      : null;
 
   return (
     <div className="page">
-      <h1>Dashboard</h1>
+      <PageHeader title="Dashboard" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12, marginBottom: 32 }}>
-        <StatCard value={stats.totalEvents.toLocaleString()} label="Total events" />
-        <StatCard value={stats.successEvents.toLocaleString()} label="Success" />
-        <StatCard value={stats.errorEvents.toLocaleString()} label="Errors" />
-        <StatCard value={stats.totalInputTokens.toLocaleString()} label="Input tokens" />
-        <StatCard value={stats.totalOutputTokens.toLocaleString()} label="Output tokens" />
-        <StatCard value={`$${parseFloat(stats.totalCost).toFixed(4)}`} label="Estimated cost" />
-        <StatCard value={stats.missingPricingModels} label="Models missing pricing" />
+      <div className="overview">
+        <div className="overview__metric overview__metric--primary">
+          <div className="overview__value num">{stats.totalEvents.toLocaleString()}</div>
+          <div className="overview__label">Total events</div>
+        </div>
+
+        <div className="overview__metric overview__metric--primary">
+          <div className="overview__value num" title={cost.title}>{cost.label}</div>
+          <div className="overview__label">Estimated cost</div>
+        </div>
+
+        <div className="overview__metric overview__metric--span">
+          <div className="overview__label" style={{ marginTop: 0, marginBottom: "var(--space-2)" }}>
+            Token usage
+          </div>
+          <div className="overview__sub">
+            <div className="overview__sub-item">
+              <span className="overview__sub-value">{stats.totalInputTokens.toLocaleString()}</span>
+              <span className="overview__sub-label">Input</span>
+            </div>
+            <div className="overview__sub-item">
+              <span className="overview__sub-value">{stats.totalOutputTokens.toLocaleString()}</span>
+              <span className="overview__sub-label">Output</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="overview__metric overview__outcome">
+          <div className="overview__outcome-row">
+            <span className="text-success">Success</span>
+            <span className="num text-success">{stats.successEvents.toLocaleString()}</span>
+          </div>
+          <div className="overview__outcome-row">
+            <span className="text-error">Errors</span>
+            <span className="num text-error">{stats.errorEvents.toLocaleString()}</span>
+          </div>
+          {successRate != null && (
+            <div className="overview__outcome-row text-muted">
+              <span>Success rate</span>
+              <span className="num">{successRate}%</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {stats.missingPricingModels > 0 && (
-        <div className="card" style={{ borderColor: "#ff9800", background: "#1a1200" }}>
-          <span className="text-warn">⚠ {stats.missingPricingModels} provider/model combination{stats.missingPricingModels > 1 ? "s" : ""} have no pricing configured. </span>
+        <div className="alert alert--warning" style={{ marginBottom: "var(--space-5)" }}>
+          <span className="text-warn">
+            ⚠ {stats.missingPricingModels} provider/model combination
+            {stats.missingPricingModels > 1 ? "s" : ""} have no pricing configured.{" "}
+          </span>
           <Link to="/pricing">Manage pricing →</Link>
         </div>
       )}
 
       <div className="section">
-        <h2>Recent events</h2>
+        <div className="section-header">
+          <h2 className="section-title">Recent events</h2>
+          {stats.totalEvents > 10 && (
+            <Link to="/events" className="text-sm">
+              View all {stats.totalEvents.toLocaleString()} →
+            </Link>
+          )}
+        </div>
+
         {stats.recentEvents.length === 0 ? (
-          <div className="text-muted">No events yet. <Link to="/applications">Create an application</Link> to start ingesting.</div>
+          <EmptyState inline>
+            No events yet. <Link to="/applications">Create an application</Link> to start ingesting.
+          </EmptyState>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Status</th>
-                <th>Application</th>
-                <th>Provider / Model</th>
-                <th>Cost</th>
-                <th>Timestamp</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="events-desktop table-wrap">
+              <table className="events-table">
+                <thead>
+                  <tr>
+                    <th className="col-status">Status</th>
+                    <th>Application</th>
+                    <th>Model</th>
+                    <th className="num-col col-cost">Cost</th>
+                    <th className="col-time">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.recentEvents.map((e) => (
+                    <tr
+                      key={e.eventId}
+                      className="clickable-row"
+                      onClick={() =>
+                        void navigate({
+                          to: "/events/$eventId",
+                          params: { eventId: e.eventId },
+                        })
+                      }
+                    >
+                      <td><EventStatusBadge status={e.status} /></td>
+                      <td>
+                        <div>{e.applicationName}</div>
+                        <div className="text-muted text-sm">{e.environment} · {e.feature}</div>
+                      </td>
+                      <td>
+                        <ModelLabel model={e.requestedModel} provider={e.provider} />
+                      </td>
+                      <td className="num-col">
+                        <CostDisplay usd={e.totalCost} className="text-sm" />
+                      </td>
+                      <td className="col-time text-muted" title={formatDateTimeDe(e.timestamp)}>
+                        {formatDateTimeShortDe(e.timestamp)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="events-mobile">
               {stats.recentEvents.map((e) => (
-                <tr key={e.eventId}>
-                  <td>
-                    <span style={{
-                      color: e.status === "success" ? "#4caf50" : "#f44336",
-                      fontWeight: "bold",
-                      fontSize: "0.85em",
-                    }}>{e.status}</span>
-                  </td>
-                  <td>{e.applicationName}</td>
-                  <td className="mono" style={{ fontSize: "0.85em" }}>{e.provider}/{e.requestedModel}</td>
-                  <td className="mono" style={{ fontSize: "0.85em" }}>
-                    {e.totalCost ? `$${parseFloat(e.totalCost).toFixed(6)}` : <span className="text-muted">—</span>}
-                  </td>
-                  <td style={{ fontSize: "0.85em", color: "#888" }}>{formatDateTimeDe(e.timestamp)}</td>
-                  <td>
-                    <Link to="/events/$eventId" params={{ eventId: e.eventId }} style={{ fontSize: "0.8em" }}>
-                      View →
-                    </Link>
-                  </td>
-                </tr>
+                <EventListCard key={e.eventId} event={e} />
               ))}
-            </tbody>
-          </table>
-        )}
-        {stats.totalEvents > 10 && (
-          <div style={{ marginTop: 12 }}>
-            <Link to="/events">View all {stats.totalEvents.toLocaleString()} events →</Link>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

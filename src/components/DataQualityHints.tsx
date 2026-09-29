@@ -40,18 +40,13 @@ export function DataQualityHints({ event }: DataQualityHintsProps) {
   if (hints.length === 0) return null;
 
   return (
-    <div style={{
-      background: "#2a1f00",
-      border: "1px solid #ff9800",
-      borderRadius: "4px",
-      padding: "12px 16px",
-    }}>
-      <div style={{ color: "#ff9800", fontWeight: "bold", marginBottom: 8 }}>
+    <div className="alert alert--warning">
+      <div style={{ fontWeight: 600, marginBottom: "var(--space-2)" }}>
         ⚠ Data quality hints
       </div>
       <ul style={{ margin: 0, paddingLeft: 20 }}>
         {hints.map((h, i) => (
-          <li key={i} style={{ color: "#ffc107", fontSize: "0.9em", marginBottom: 4 }}>{h}</li>
+          <li key={i} className="text-sm" style={{ marginBottom: 4 }}>{h}</li>
         ))}
       </ul>
     </div>

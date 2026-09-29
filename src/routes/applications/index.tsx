@@ -9,12 +9,116 @@ import {
   revokeApiKeyFn,
 } from "../../server-functions/applications.js";
 import type { Application, ApiKey } from "../../domain/applications/application-service.js";
-import { formatDateDe, formatDateTimeDe } from "../../lib/format-date.js";
+import { formatDateDe, formatDateTimeDe, formatDateTimeShortDe } from "../../lib/format-date.js";
+import { PageHeader } from "../../components/ui/PageHeader.js";
+import { SectionHeader } from "../../components/ui/SectionHeader.js";
+import { EmptyState } from "../../components/ui/EmptyState.js";
+import { Badge } from "../../components/ui/Badge.js";
 
 export const Route = createFileRoute("/applications/")({
   loader: () => fetchApplications(),
   component: ApplicationsPage,
 });
+
+function KeyStatus({ keyRecord }: { keyRecord: ApiKey }) {
+  if (keyRecord.revokedAt) {
+    return (
+      <Badge variant="danger" title={`Revoked ${formatDateDe(keyRecord.revokedAt)}`}>
+        Revoked
+      </Badge>
+    );
+  }
+  return <Badge variant="success">Active</Badge>;
+}
+
+function ApiKeyList({
+  appId,
+  keys,
+  onRevoke,
+}: {
+  appId: string;
+  keys: ApiKey[];
+  onRevoke: (keyId: string, appId: string) => void;
+}) {
+  if (keys.length === 0) {
+    return <EmptyState inline>No API keys.</EmptyState>;
+  }
+
+  return (
+    <>
+      <div className="keys-desktop table-wrap">
+        <table className="keys-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Last used</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {keys.map((key) => (
+              <tr key={key.id}>
+                <td className="mono">{key.name}</td>
+                <td><KeyStatus keyRecord={key} /></td>
+                <td className="text-sm text-muted">{formatDateDe(key.createdAt)}</td>
+                <td className="text-sm" title={key.lastUsedAt ? formatDateTimeDe(key.lastUsedAt) : undefined}>
+                  {key.lastUsedAt ? formatDateTimeShortDe(key.lastUsedAt) : <span className="text-muted">Never</span>}
+                </td>
+                <td className="keys-table__actions">
+                  {!key.revokedAt && (
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      onClick={() => onRevoke(key.id, appId)}
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="keys-mobile">
+        {keys.map((key) => (
+          <div key={key.id} className="key-card">
+            <div className="key-card__top">
+              <span className="key-card__name mono">{key.name}</span>
+              <KeyStatus keyRecord={key} />
+            </div>
+            <div className="key-card__meta">
+              <div>
+                <span className="key-card__label">Created</span>
+                <span>{formatDateDe(key.createdAt)}</span>
+              </div>
+              <div>
+                <span className="key-card__label">Last used</span>
+                <span title={key.lastUsedAt ? formatDateTimeDe(key.lastUsedAt) : undefined}>
+                  {key.lastUsedAt ? formatDateTimeShortDe(key.lastUsedAt) : "Never"}
+                </span>
+              </div>
+            </div>
+            {!key.revokedAt && (
+              <div className="key-card__actions">
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => onRevoke(key.id, appId)}
+                >
+                  Revoke
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
 
 function ApplicationsPage() {
   const apps: Application[] = Route.useLoaderData();
@@ -68,7 +172,7 @@ function ApplicationsPage() {
       setEditNameId(null);
       void router.invalidate();
     } catch {
-      // silently ignore — could show error
+      // silently ignore
     }
   }
 
@@ -93,26 +197,19 @@ function ApplicationsPage() {
 
   return (
     <div className="page">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1>Applications</h1>
-        <button className="btn btn-primary" onClick={() => setShowCreateForm(!showCreateForm)}>
-          + New application
-        </button>
-      </div>
+      <PageHeader
+        title="Applications"
+        actions={
+          <button type="button" className="btn btn-primary" onClick={() => setShowCreateForm(!showCreateForm)}>
+            + New application
+          </button>
+        }
+      />
 
       {showCreateForm && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <h2>Create application</h2>
+        <div className="card admin-panel">
+          <h2 className="section-title">Create application</h2>
           <form onSubmit={submitCreate}>
-            <div className="field-row">
-              <label>Application ID (stable, technical)</label>
-              <input
-                value={createId}
-                onChange={(e) => setCreateId(e.target.value)}
-                placeholder="e.g. recipe-app"
-                required
-              />
-            </div>
             <div className="field-row">
               <label>Display name</label>
               <input
@@ -122,8 +219,18 @@ function ApplicationsPage() {
                 required
               />
             </div>
+            <div className="field-row">
+              <label>Application ID (stable, technical)</label>
+              <input
+                value={createId}
+                onChange={(e) => setCreateId(e.target.value)}
+                placeholder="e.g. recipe-app"
+                className="mono"
+                required
+              />
+            </div>
             {createError && <div className="error-box">{createError}</div>}
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="cluster">
               <button type="submit" className="btn btn-primary">Create</button>
               <button type="button" className="btn" onClick={() => setShowCreateForm(false)}>Cancel</button>
             </div>
@@ -132,23 +239,15 @@ function ApplicationsPage() {
       )}
 
       {newPlaintext && (
-        <div className="card" style={{ borderColor: "#4caf50", background: "#0d1f0d", marginBottom: 16 }}>
-          <div style={{ color: "#4caf50", fontWeight: "bold", marginBottom: 8 }}>
+        <div className="alert alert--success" style={{ marginBottom: "var(--space-4)" }}>
+          <div style={{ fontWeight: 600, marginBottom: "var(--space-2)" }}>
             ✓ API key created — copy it now, it will not be shown again
           </div>
-          <code style={{
-            display: "block",
-            background: "#0a0a0a",
-            padding: "10px 12px",
-            borderRadius: 4,
-            fontFamily: "monospace",
-            fontSize: "0.9em",
-            wordBreak: "break-all",
-            color: "#fff",
-          }}>{newPlaintext}</code>
+          <code className="code-inline">{newPlaintext}</code>
           <button
+            type="button"
             className="btn"
-            style={{ marginTop: 8 }}
+            style={{ marginTop: "var(--space-2)" }}
             onClick={() => setNewPlaintext(null)}
           >
             Dismiss
@@ -157,132 +256,109 @@ function ApplicationsPage() {
       )}
 
       {apps.length === 0 ? (
-        <div className="text-muted">No applications yet.</div>
+        <EmptyState inline>No applications yet.</EmptyState>
       ) : (
-        apps.map((app) => (
-          <div key={app.id} className="card">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                {editNameId === app.id ? (
-                  <form
-                    onSubmit={(e) => { e.preventDefault(); void submitEditName(app.id); }}
-                    style={{ display: "inline-flex", gap: 8, alignItems: "center" }}
-                  >
-                    <input
-                      value={editNameValue}
-                      onChange={(e) => setEditNameValue(e.target.value)}
-                      autoFocus
-                      required
-                    />
-                    <button type="submit" className="btn btn-primary" style={{ padding: "4px 10px" }}>Save</button>
-                    <button type="button" className="btn" style={{ padding: "4px 10px" }} onClick={() => setEditNameId(null)}>Cancel</button>
-                  </form>
-                ) : (
-                  <span style={{ fontSize: "1.05em", fontWeight: "bold" }}>{app.displayName}</span>
-                )}
-                <span style={{ color: "#666", fontFamily: "monospace", fontSize: "0.82em", marginLeft: 12 }}>{app.id}</span>
-                <button
-                  className="btn"
-                  style={{ marginLeft: 8, padding: "2px 8px", fontSize: "0.78em" }}
-                  onClick={() => { setEditNameId(app.id); setEditNameValue(app.displayName); }}
-                >
-                  Rename
-                </button>
-              </div>
-              <button
-                className="btn"
-                onClick={() => toggleApp(app.id)}
-              >
-                {expandedApp === app.id ? "Hide keys ▲" : "API keys ▼"}
-              </button>
-            </div>
-            <div style={{ color: "#666", fontSize: "0.82em", marginTop: 4 }}>
-              Created {formatDateDe(app.createdAt)}
-            </div>
-
-            {expandedApp === app.id && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <h2 style={{ margin: 0 }}>API Keys</h2>
-                  <button
-                    className="btn btn-primary"
-                    style={{ fontSize: "0.82em" }}
-                    onClick={() => setNewKeyAppId(app.id)}
-                  >
-                    + New key
-                  </button>
+        <div className="app-list">
+          {apps.map((app) => {
+            const expanded = expandedApp === app.id;
+            return (
+              <div key={app.id} className={`app-item${expanded ? " app-item--expanded" : ""}`}>
+                <div className="app-item__header">
+                  <div className="app-item__identity">
+                    {editNameId === app.id ? (
+                      <form
+                        onSubmit={(e) => { e.preventDefault(); void submitEditName(app.id); }}
+                        className="cluster"
+                      >
+                        <input
+                          value={editNameValue}
+                          onChange={(e) => setEditNameValue(e.target.value)}
+                          autoFocus
+                          required
+                        />
+                        <button type="submit" className="btn btn-primary btn-sm">Save</button>
+                        <button type="button" className="btn btn-sm" onClick={() => setEditNameId(null)}>Cancel</button>
+                      </form>
+                    ) : (
+                      <>
+                        <div className="app-item__name">{app.displayName}</div>
+                        <div className="app-item__id mono">{app.id}</div>
+                      </>
+                    )}
+                    <div className="app-item__created text-muted">
+                      Created {formatDateDe(app.createdAt)}
+                    </div>
+                  </div>
+                  <div className="app-item__actions">
+                    {editNameId !== app.id && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => { setEditNameId(app.id); setEditNameValue(app.displayName); }}
+                      >
+                        Rename
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => toggleApp(app.id)}
+                      aria-expanded={expanded}
+                    >
+                      {expanded ? "Hide keys" : "API keys"}
+                    </button>
+                  </div>
                 </div>
 
-                {newKeyAppId === app.id && (
-                  <div style={{ background: "#1a1a1a", padding: 12, borderRadius: 4, marginBottom: 12 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <input
-                        value={newKeyName}
-                        onChange={(e) => setNewKeyName(e.target.value)}
-                        placeholder="Key name (e.g. production)"
-                        style={{ flex: 1 }}
-                      />
-                      <button
-                        className="btn btn-primary"
-                        disabled={!newKeyName.trim()}
-                        onClick={() => submitCreateKey(app.id)}
-                      >
-                        Create
-                      </button>
-                      <button className="btn" onClick={() => setNewKeyAppId(null)}>Cancel</button>
-                    </div>
-                    {keyError && <div className="error-box" style={{ marginTop: 8 }}>{keyError}</div>}
+                {expanded && (
+                  <div className="app-item__keys">
+                    <SectionHeader
+                      title="API Keys"
+                      actions={
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => setNewKeyAppId(app.id)}
+                        >
+                          + New key
+                        </button>
+                      }
+                    />
+
+                    {newKeyAppId === app.id && (
+                      <div className="surface" style={{ marginBottom: "var(--space-3)" }}>
+                        <div className="cluster key-create">
+                          <input
+                            value={newKeyName}
+                            onChange={(e) => setNewKeyName(e.target.value)}
+                            placeholder="Key name (e.g. production)"
+                            className="key-create__input"
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={!newKeyName.trim()}
+                            onClick={() => submitCreateKey(app.id)}
+                          >
+                            Create
+                          </button>
+                          <button type="button" className="btn" onClick={() => setNewKeyAppId(null)}>Cancel</button>
+                        </div>
+                        {keyError && <div className="error-box" style={{ marginTop: "var(--space-2)" }}>{keyError}</div>}
+                      </div>
+                    )}
+
+                    <ApiKeyList
+                      appId={app.id}
+                      keys={keys[app.id] ?? []}
+                      onRevoke={handleRevoke}
+                    />
                   </div>
                 )}
-
-                {(keys[app.id] ?? []).length === 0 ? (
-                  <div className="text-muted" style={{ fontSize: "0.9em" }}>No API keys.</div>
-                ) : (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th>Last used</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(keys[app.id] ?? []).map((key) => (
-                        <tr key={key.id}>
-                          <td className="mono" style={{ fontSize: "0.9em" }}>{key.name}</td>
-                          <td>
-                            {key.revokedAt
-                              ? <span style={{ color: "#f44336", fontSize: "0.85em" }}>Revoked {formatDateDe(key.revokedAt)}</span>
-                              : <span style={{ color: "#4caf50", fontSize: "0.85em" }}>Active</span>}
-                          </td>
-                          <td style={{ fontSize: "0.85em", color: "#888" }}>
-                            {formatDateDe(key.createdAt)}
-                          </td>
-                          <td style={{ fontSize: "0.85em", color: "#888" }}>
-                            {key.lastUsedAt ? formatDateTimeDe(key.lastUsedAt) : "—"}
-                          </td>
-                          <td>
-                            {!key.revokedAt && (
-                              <button
-                                className="btn btn-danger"
-                                style={{ fontSize: "0.78em", padding: "3px 8px" }}
-                                onClick={() => handleRevoke(key.id, app.id)}
-                              >
-                                Revoke
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
               </div>
-            )}
-          </div>
-        ))
+            );
+          })}
+        </div>
       )}
     </div>
   );
