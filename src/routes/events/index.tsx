@@ -8,11 +8,13 @@ import {
   createColumnHelper,
 } from "@tanstack/react-table";
 import { fetchEvents } from "../../server-functions/events.js";
-import type { EventListItem, EventSortBy, EventSortDir } from "../../domain/events/event-service.js";
 import {
   DEFAULT_EVENT_PAGE_SIZE,
   MAX_EVENT_PAGE_SIZE,
-} from "../../domain/events/event-service.js";
+  type EventListItem,
+  type EventSortBy,
+  type EventSortDir,
+} from "../../domain/events/event-list.js";
 import { EventStatusBadge } from "../../components/EventStatusBadge.js";
 import { formatCostCents } from "../../lib/format-cost.js";
 

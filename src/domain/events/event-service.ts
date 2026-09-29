@@ -1,6 +1,16 @@
 import type Database from "better-sqlite3";
 import type { IngestEvent } from "./event-schema.js";
 import { applyPricingToEvent } from "../pricing/pricing-service.js";
+import {
+  DEFAULT_EVENT_PAGE_SIZE,
+  MAX_EVENT_PAGE_SIZE,
+  type EventSortBy,
+  type EventSortDir,
+  type EventListItem,
+} from "./event-list.js";
+
+export type { EventSortBy, EventSortDir, EventListItem } from "./event-list.js";
+export { DEFAULT_EVENT_PAGE_SIZE, MAX_EVENT_PAGE_SIZE } from "./event-list.js";
 
 export interface IngestResult {
   eventId: string;
@@ -115,22 +125,6 @@ export function ingestEvent(
   return { eventId: event.eventId, received: true, duplicate: false };
 }
 
-export type EventSortBy =
-  | "timestamp"
-  | "status"
-  | "applicationName"
-  | "environment"
-  | "feature"
-  | "operation"
-  | "requestedModel"
-  | "inputTokens"
-  | "cachedInputTokens"
-  | "outputTokens"
-  | "totalCost"
-  | "durationMs";
-
-export type EventSortDir = "asc" | "desc";
-
 const SORT_COLUMNS: Record<EventSortBy, string> = {
   timestamp: "e.timestamp",
   status: "e.status",
@@ -156,35 +150,12 @@ export interface EventListFilters {
   sortDir?: EventSortDir;
 }
 
-export interface EventListItem {
-  eventId: string;
-  applicationId: string;
-  applicationName: string;
-  status: string;
-  environment: string;
-  feature: string;
-  operation: string;
-  provider: string;
-  requestedModel: string;
-  reportedModel: string | null;
-  inputTokens: number | null;
-  cachedInputTokens: number | null;
-  outputTokens: number | null;
-  totalCost: string | null;
-  pricingId: string | null;
-  timestamp: string;
-  durationMs: number;
-}
-
 export interface EventListResult {
   items: EventListItem[];
   total: number;
   page: number;
   pageSize: number;
 }
-
-export const DEFAULT_EVENT_PAGE_SIZE = 100;
-export const MAX_EVENT_PAGE_SIZE = 1000;
 
 export function listEvents(
   db: Database.Database,
