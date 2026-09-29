@@ -9,12 +9,15 @@ interface ArtifactViewerProps {
   onDeleted?: (artifact: ArtifactRecord) => void;
   /** Larger image preview for request inspector layouts. */
   size?: "default" | "large";
+  /** Tighter layout for request inspector (less chrome). */
+  compact?: boolean;
 }
 
 export function ArtifactViewer({
   artifact,
   onDeleted,
   size = "default",
+  compact = false,
 }: ArtifactViewerProps) {
   const overlayTitleId = useId();
   const [data, setData] = useState<{ dataBase64: string; mimeType: string } | null>(null);
@@ -118,14 +121,26 @@ export function ArtifactViewer({
     }
   }
 
-  const thumbClass =
-    size === "large" ? "artifact__thumb artifact__thumb--large" : "artifact__thumb";
+  const thumbClass = compact
+    ? "artifact__thumb artifact__thumb--compact"
+    : size === "large"
+      ? "artifact__thumb artifact__thumb--large"
+      : "artifact__thumb";
+
+  const rootClass = [
+    "artifact",
+    deleted ? "artifact--deleted" : "",
+    size === "large" && !compact ? "artifact--large" : "",
+    compact ? "artifact--compact" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div
-      className={`artifact${deleted ? " artifact--deleted" : ""}${size === "large" ? " artifact--large" : ""}`}
-    >
-      <div className={`artifact__body${size === "large" && isImage ? " artifact__body--stack" : ""}`}>
+    <div className={rootClass}>
+      <div
+        className={`artifact__body${(size === "large" || compact) && isImage ? " artifact__body--stack" : ""}`}
+      >
         {isImage && !deleted ? (
           <div className="artifact__thumb-wrap">
             {src ? (
@@ -148,36 +163,73 @@ export function ArtifactViewer({
         <div className="artifact__main">
           <div className="artifact__header">
             <div className="artifact__meta">
-              <div className="artifact__title">
-                <Badge variant="accent">{artifact.role}</Badge>
-                {deleted ? <Badge variant="neutral">Deleted</Badge> : null}
-                {artifact.label ? (
-                  <span className="text-secondary">{artifact.label}</span>
-                ) : artifact.originalFilename ? (
-                  <span className="text-muted">{artifact.originalFilename}</span>
-                ) : null}
-              </div>
-              <div className="artifact__details text-sm text-muted">
-                <div>
-                  <span className="artifact__size num" title={`${artifact.byteSize.toLocaleString()} bytes`}>
-                    {sizeLabel}
-                  </span>
+              {compact ? (
+                <div className="artifact__meta-line text-xs text-muted">
+                  <Badge variant="accent">{artifact.role}</Badge>
+                  {deleted ? <Badge variant="neutral">Deleted</Badge> : null}
+                  {artifact.label ? (
+                    <span className="text-secondary">{artifact.label}</span>
+                  ) : artifact.originalFilename ? (
+                    <span>{artifact.originalFilename}</span>
+                  ) : null}
                   <span className="event-card__sep"> · </span>
                   <span>{artifact.mimeType}</span>
+                  <span className="event-card__sep"> · </span>
+                  <span className="num" title={`${artifact.byteSize.toLocaleString()} bytes`}>
+                    {sizeLabel}
+                  </span>
+                  {artifact.width && artifact.height ? (
+                    <>
+                      <span className="event-card__sep"> · </span>
+                      <span>
+                        {artifact.width}×{artifact.height}
+                      </span>
+                    </>
+                  ) : null}
+                  {!deleted ? (
+                    <>
+                      <span className="event-card__sep"> · </span>
+                      <span className="mono">{artifact.contentHash.slice(0, 12)}…</span>
+                    </>
+                  ) : null}
                 </div>
-                {artifact.width && artifact.height ? (
-                  <div>
-                    {artifact.width} × {artifact.height} px
+              ) : (
+                <>
+                  <div className="artifact__title">
+                    <Badge variant="accent">{artifact.role}</Badge>
+                    {deleted ? <Badge variant="neutral">Deleted</Badge> : null}
+                    {artifact.label ? (
+                      <span className="text-secondary">{artifact.label}</span>
+                    ) : artifact.originalFilename ? (
+                      <span className="text-muted">{artifact.originalFilename}</span>
+                    ) : null}
                   </div>
-                ) : null}
-                {deleted && artifact.deletedAt ? (
-                  <div>Deleted {new Date(artifact.deletedAt).toLocaleString("de-DE")}</div>
-                ) : (
-                  <div className="mono" style={{ marginTop: 4 }}>
-                    SHA256: {artifact.contentHash.slice(0, 16)}…
+                  <div className="artifact__details text-sm text-muted">
+                    <div>
+                      <span
+                        className="artifact__size num"
+                        title={`${artifact.byteSize.toLocaleString()} bytes`}
+                      >
+                        {sizeLabel}
+                      </span>
+                      <span className="event-card__sep"> · </span>
+                      <span>{artifact.mimeType}</span>
+                    </div>
+                    {artifact.width && artifact.height ? (
+                      <div>
+                        {artifact.width} × {artifact.height} px
+                      </div>
+                    ) : null}
+                    {deleted && artifact.deletedAt ? (
+                      <div>Deleted {new Date(artifact.deletedAt).toLocaleString("de-DE")}</div>
+                    ) : (
+                      <div className="mono" style={{ marginTop: 4 }}>
+                        SHA256: {artifact.contentHash.slice(0, 16)}…
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
             <div className="artifact__actions">
               {!deleted && !isImage && !data ? (
@@ -193,7 +245,7 @@ export function ArtifactViewer({
               {!deleted ? (
                 <button
                   type="button"
-                  className="btn btn-danger btn-sm"
+                  className={`btn btn-sm${compact ? " btn-ghost" : " btn-danger"}`}
                   onClick={handleDelete}
                   disabled={deleting}
                 >

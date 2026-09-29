@@ -10,6 +10,8 @@ interface JsonDisplayProps {
   /** Visually secondary (metadata / config). */
   secondary?: boolean;
   defaultExpanded?: boolean;
+  /** Matched heights for Request/Response inspector panes. */
+  inspectorRole?: "primary" | "secondary";
 }
 
 function serialize(value: unknown): string {
@@ -101,14 +103,24 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+const INSPECTOR_HEIGHT = { primary: 260, secondary: 160 } as const;
+
 export function JsonDisplay({
   value,
   label,
   collapseAbove = 2400,
-  maxHeight = 280,
+  maxHeight: maxHeightProp,
   secondary = false,
   defaultExpanded = false,
+  inspectorRole,
 }: JsonDisplayProps) {
+  const maxHeight =
+    maxHeightProp ??
+    (inspectorRole === "primary"
+      ? INSPECTOR_HEIGHT.primary
+      : inspectorRole === "secondary"
+        ? INSPECTOR_HEIGHT.secondary
+        : 280);
   const text = useMemo(() => serialize(value), [value]);
   const highlighted = useMemo(() => highlightJson(text), [text]);
   const isLarge = text.length > collapseAbove || text.split("\n").length > 24;
@@ -131,8 +143,15 @@ export function JsonDisplay({
     window.setTimeout(() => setCopied(false), 1500);
   }
 
+  const inspectorClass =
+    inspectorRole === "primary"
+      ? " json-panel--inspector-primary"
+      : inspectorRole === "secondary"
+        ? " json-panel--inspector-secondary"
+        : "";
+
   return (
-    <div className={`json-panel${secondary ? " json-panel--secondary" : ""}`}>
+    <div className={`json-panel${secondary ? " json-panel--secondary" : ""}${inspectorClass}`}>
       <div className="json-panel__bar">
         {label ? <div className="json-panel__label">{label}</div> : <span />}
         <div className="json-panel__actions">
@@ -151,8 +170,15 @@ export function JsonDisplay({
         </div>
       </div>
       <pre
-        className={`code-block json-block${!expanded ? " json-block--collapsed" : ""}`}
-        style={!expanded ? { maxHeight } : undefined}
+        className={`code-block json-block${!expanded ? " json-block--collapsed" : ""}${inspectorRole && !expanded ? " json-block--inspector" : ""}`}
+        style={
+          !expanded
+            ? {
+                maxHeight,
+                ...(inspectorRole && !isLarge ? { minHeight: maxHeight } : {}),
+              }
+            : undefined
+        }
       >
         <code>{highlighted}</code>
       </pre>

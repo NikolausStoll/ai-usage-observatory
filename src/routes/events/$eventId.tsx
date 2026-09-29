@@ -2,8 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { createFileRoute, Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { fetchEvent } from "../../server-functions/events.js";
 import { EventStatusBadge } from "../../components/EventStatusBadge.js";
-import { TokenUsage } from "../../components/TokenUsage.js";
-import { CostBreakdown } from "../../components/CostBreakdown.js";
+import { UsageAndCost } from "../../components/UsageAndCost.js";
 import { DataQualityHints } from "../../components/DataQualityHints.js";
 import { JsonDisplay } from "../../components/JsonDisplay.js";
 import { ArtifactViewer } from "../../components/ArtifactViewer.js";
@@ -101,7 +100,6 @@ function EventDetailPage() {
   const durationMs = e["duration_ms"] as number;
   const totalTokens = e["total_tokens"] as number | null;
   const totalCost = e["total_cost"] as string | null;
-  const hasUsage = e["input_tokens"] !== null || e["output_tokens"] !== null;
   const isError = status === "error";
 
   const title =
@@ -120,10 +118,24 @@ function EventDetailPage() {
   );
   const otherDeleted = otherArtifacts.filter((a) => isArtifactDeleted(a)).length;
   const hasInputImages = inputImageArtifacts.length > 0;
-  const hasRequest =
-    e["request_input"] != null || e["request_config"] != null || e["request_raw"] != null;
-  const hasResponse =
-    e["response_output"] != null || e["response_raw"] != null || e["response_metadata"] != null;
+  const hasRequestBody =
+    e["request_input"] != null ||
+    e["request_config"] != null ||
+    e["request_metadata"] != null ||
+    hasInputImages;
+  const telemetryItems: Array<{ key: string; label: string; value: unknown }> = [];
+  if (e["raw_usage"] != null) {
+    telemetryItems.push({ key: "raw_usage", label: "Raw usage", value: e["raw_usage"] });
+  }
+  if (e["metadata"] != null) {
+    telemetryItems.push({ key: "metadata", label: "Event metadata", value: e["metadata"] });
+  }
+  if (e["request_raw"] != null) {
+    telemetryItems.push({ key: "request_raw", label: "Request raw", value: e["request_raw"] });
+  }
+  if (e["response_raw"] != null) {
+    telemetryItems.push({ key: "response_raw", label: "Response raw", value: e["response_raw"] });
+  }
 
   function handleArtifactDeleted(updated: ArtifactRecord) {
     setArtifacts((prev) =>
@@ -140,7 +152,6 @@ function EventDetailPage() {
         </Link>
       </div>
 
-      {/* ── Hero / summary ─────────────────────────────────────── */}
       <header className="event-hero">
         <div className="event-hero__title-row">
           <h1 className="event-hero__title">{title}</h1>
@@ -204,7 +215,6 @@ function EventDetailPage() {
         </div>
       </header>
 
-      {/* ── Error (prominent) ──────────────────────────────────── */}
       {isError ? (
         <div className="event-error alert alert--danger" role="alert">
           <div className="event-error__head">
@@ -226,95 +236,99 @@ function EventDetailPage() {
 
       <DataQualityHints event={e} />
 
-      {/* ── Compact token + cost breakdowns ────────────────────── */}
-      <div className="event-breakdowns">
-        <div className="event-breakdowns__panel">
-          <SectionHeader title="Tokens" />
-          <TokenUsage
-            inputTokens={e["input_tokens"] as number | null}
-            cachedInputTokens={e["cached_input_tokens"] as number | null}
-            outputTokens={e["output_tokens"] as number | null}
-            reasoningTokens={e["reasoning_tokens"] as number | null}
-            totalTokens={totalTokens}
-          />
-        </div>
-        <div className="event-breakdowns__panel">
-          <SectionHeader title="Cost" />
-          <CostBreakdown
-            inputCost={e["input_cost"] as string | null}
-            cachedInputCost={e["cached_input_cost"] as string | null}
-            outputCost={e["output_cost"] as string | null}
-            totalCost={totalCost}
-            pricingId={e["pricing_id"] as string | null}
-            hasUsage={hasUsage}
-            hidePricingState
-          />
-        </div>
-      </div>
+      <UsageAndCost
+        inputTokens={e["input_tokens"] as number | null}
+        cachedInputTokens={e["cached_input_tokens"] as number | null}
+        outputTokens={e["output_tokens"] as number | null}
+        reasoningTokens={e["reasoning_tokens"] as number | null}
+        totalTokens={totalTokens}
+        inputCost={e["input_cost"] as string | null}
+        cachedInputCost={e["cached_input_cost"] as string | null}
+        outputCost={e["output_cost"] as string | null}
+        totalCost={totalCost}
+      />
 
-      {/* ── Request / Response inspector (+ vision artifacts) ─── */}
-      <div
-        className={`event-inspector${hasInputImages ? " event-inspector--vision" : ""}`}
-      >
-        <section className="event-inspector__col">
-          <SectionHeader
-            title={hasInputImages ? "Request & source" : "Request"}
-          />
-          {hasInputImages ? (
-            <div className="event-artifacts-inline" id="artifacts">
-              {inputImageArtifacts.map((a) => (
-                <ArtifactViewer
-                  key={a.artifactId}
-                  artifact={a}
-                  size="large"
-                  onDeleted={handleArtifactDeleted}
-                />
-              ))}
-            </div>
-          ) : null}
-          <div className="stack">
+      <div className="event-inspector">
+        <div className="event-inspector__col">
+          <SectionHeader title="Request" />
+          <div className="event-inspector__stack">
+            {hasInputImages ? (
+              <div className="event-artifacts-inline" id="artifacts">
+                {inputImageArtifacts.map((a) => (
+                  <ArtifactViewer
+                    key={a.artifactId}
+                    artifact={a}
+                    compact
+                    onDeleted={handleArtifactDeleted}
+                  />
+                ))}
+              </div>
+            ) : null}
             {e["request_input"] != null ? (
-              <JsonDisplay value={e["request_input"]} label="Input" />
-            ) : (
+              <JsonDisplay
+                value={e["request_input"]}
+                label="Input"
+                inspectorRole="primary"
+              />
+            ) : !hasInputImages ? (
               <span className="text-muted text-sm">No input stored</span>
-            )}
+            ) : null}
             {e["request_config"] != null ? (
-              <JsonDisplay value={e["request_config"]} label="Config" secondary />
+              <JsonDisplay
+                value={e["request_config"]}
+                label="Config"
+                secondary
+                inspectorRole="secondary"
+              />
             ) : null}
             {e["request_metadata"] != null ? (
-              <JsonDisplay value={e["request_metadata"]} label="Metadata" secondary />
+              <JsonDisplay
+                value={e["request_metadata"]}
+                label="Metadata"
+                secondary
+                inspectorRole="secondary"
+              />
             ) : null}
-            {e["request_raw"] != null ? (
-              <JsonDisplay value={e["request_raw"]} label="Raw" secondary />
-            ) : null}
-            {!hasRequest && !hasInputImages ? (
-              <span className="text-muted">No request data</span>
+            {!hasRequestBody ? (
+              <span className="text-muted text-sm">No request data</span>
             ) : null}
           </div>
-        </section>
+        </div>
 
-        <section className="event-inspector__col">
+        <div className="event-inspector__col">
           <SectionHeader title="Response" />
-          <div className="stack">
+          <div className="event-inspector__stack">
             {e["response_output"] != null ? (
-              <JsonDisplay value={e["response_output"]} label="Output" />
+              <JsonDisplay
+                value={e["response_output"]}
+                label="Output"
+                inspectorRole="primary"
+              />
             ) : (
               <span className="text-muted text-sm">No output stored</span>
             )}
             {e["response_metadata"] != null ? (
-              <JsonDisplay value={e["response_metadata"]} label="Metadata" secondary />
+              <JsonDisplay
+                value={e["response_metadata"]}
+                label="Metadata"
+                secondary
+                inspectorRole="secondary"
+              />
             ) : null}
-            {e["response_raw"] != null ? (
-              <JsonDisplay value={e["response_raw"]} label="Raw" secondary />
+            {e["metrics"] != null ? (
+              <JsonDisplay
+                value={e["metrics"]}
+                label="Metrics"
+                secondary
+                inspectorRole="secondary"
+              />
             ) : null}
-            {!hasResponse ? <span className="text-muted">No response data</span> : null}
           </div>
-        </section>
+        </div>
       </div>
 
-      {/* ── Remaining artifacts ────────────────────────────────── */}
       {otherArtifacts.length > 0 ? (
-        <section className="section" id={hasInputImages ? undefined : "artifacts"}>
+        <section className="event-detail__subsection" id={hasInputImages ? undefined : "artifacts"}>
           <SectionHeader
             title={
               otherDeleted > 0
@@ -333,30 +347,22 @@ function EventDetailPage() {
           </div>
         </section>
       ) : inputImageArtifacts.length === 0 && artifacts.length === 0 ? (
-        <section className="section" id="artifacts">
+        <section className="event-detail__subsection" id="artifacts">
           <SectionHeader title="Artifacts" />
           <span className="text-muted">No artifacts</span>
         </section>
       ) : null}
 
-      {/* ── App data ───────────────────────────────────────────── */}
-      {(e["metadata"] != null || e["metrics"] != null || e["raw_usage"] != null) && (
-        <CollapsibleSection title="App data & raw usage">
+      {telemetryItems.length > 0 ? (
+        <CollapsibleSection title="Additional telemetry">
           <div className="stack">
-            {e["metadata"] != null && (
-              <JsonDisplay value={e["metadata"]} label="Event metadata" secondary />
-            )}
-            {e["metrics"] != null && (
-              <JsonDisplay value={e["metrics"]} label="Custom metrics" secondary />
-            )}
-            {e["raw_usage"] != null && (
-              <JsonDisplay value={e["raw_usage"]} label="Raw usage" secondary />
-            )}
+            {telemetryItems.map((item) => (
+              <JsonDisplay key={item.key} value={item.value} label={item.label} secondary />
+            ))}
           </div>
         </CollapsibleSection>
-      )}
+      ) : null}
 
-      {/* ── Technical details ──────────────────────────────────── */}
       <CollapsibleSection title="Technical details">
         <dl className="tech-grid">
           <TechRow label="Event ID">
@@ -367,27 +373,14 @@ function EventDetailPage() {
               <CopyableValue value={subjectId} />
             </TechRow>
           ) : null}
-          {subjectLabel ? (
-            <TechRow label="Subject label">
-              <span>{subjectLabel}</span>
-            </TechRow>
-          ) : null}
-          <TechRow label="Application">
-            <span>
-              {applicationName}{" "}
-              <span className="text-muted">(</span>
-              <CopyableValue value={e["application_id"] as string} />
-              <span className="text-muted">)</span>
-            </span>
+          <TechRow label="Application ID">
+            <CopyableValue value={e["application_id"] as string} />
           </TechRow>
           <TechRow label="App version">
             {(e["application_version"] as string | null) ?? (
               <span className="text-muted">—</span>
             )}
           </TechRow>
-          <TechRow label="Environment">{environment}</TechRow>
-          <TechRow label="Feature">{feature}</TechRow>
-          <TechRow label="Operation">{operation}</TechRow>
           <TechRow label="Operation ID">
             <CopyableValue value={e["operation_id"] as string} />
           </TechRow>
@@ -401,10 +394,6 @@ function EventDetailPage() {
           <TechRow label="Attempt #">
             <span className="num">{e["attempt_number"] as number}</span>
           </TechRow>
-          <TechRow label="Provider">{e["provider"] as string}</TechRow>
-          <TechRow label="Requested model">
-            <span className="mono">{e["requested_model"] as string}</span>
-          </TechRow>
           <TechRow label="Reported model">
             {e["reported_model"] != null ? (
               <span className="mono">{e["reported_model"] as string}</span>
@@ -412,22 +401,11 @@ function EventDetailPage() {
               <span className="text-muted">—</span>
             )}
           </TechRow>
-          <TechRow label="Prompt ID">
-            {promptId ? <CopyableValue value={promptId} /> : <span className="text-muted">—</span>}
-          </TechRow>
-          <TechRow label="Prompt version">
-            {promptVersion ?? <span className="text-muted">—</span>}
-          </TechRow>
           <TechRow label="Timestamp">
             <span className="num">{formatDateTimeDe(e["timestamp"] as string)}</span>
           </TechRow>
           <TechRow label="Received at">
             <span className="num">{formatDateTimeDe(e["received_at"] as string)}</span>
-          </TechRow>
-          <TechRow label="Duration">
-            <span className="num" title={formatDurationPrecise(durationMs)}>
-              {formatDurationMs(durationMs)}
-            </span>
           </TechRow>
           <TechRow label="Pricing ID">
             {e["pricing_id"] != null ? (
