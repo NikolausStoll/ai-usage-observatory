@@ -7,9 +7,15 @@ import { useEffect, useId, useState } from "react";
 interface ArtifactViewerProps {
   artifact: ArtifactRecord;
   onDeleted?: (artifact: ArtifactRecord) => void;
+  /** Larger image preview for request inspector layouts. */
+  size?: "default" | "large";
 }
 
-export function ArtifactViewer({ artifact, onDeleted }: ArtifactViewerProps) {
+export function ArtifactViewer({
+  artifact,
+  onDeleted,
+  size = "default",
+}: ArtifactViewerProps) {
   const overlayTitleId = useId();
   const [data, setData] = useState<{ dataBase64: string; mimeType: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -112,9 +118,14 @@ export function ArtifactViewer({ artifact, onDeleted }: ArtifactViewerProps) {
     }
   }
 
+  const thumbClass =
+    size === "large" ? "artifact__thumb artifact__thumb--large" : "artifact__thumb";
+
   return (
-    <div className={`artifact${deleted ? " artifact--deleted" : ""}`}>
-      <div className="artifact__body">
+    <div
+      className={`artifact${deleted ? " artifact--deleted" : ""}${size === "large" ? " artifact--large" : ""}`}
+    >
+      <div className={`artifact__body${size === "large" && isImage ? " artifact__body--stack" : ""}`}>
         {isImage && !deleted ? (
           <div className="artifact__thumb-wrap">
             {src ? (
@@ -124,10 +135,10 @@ export function ArtifactViewer({ artifact, onDeleted }: ArtifactViewerProps) {
                 onClick={() => setOverlayOpen(true)}
                 aria-label={`Enlarge ${alt}`}
               >
-                <img src={src} alt={alt} className="artifact__thumb" />
+                <img src={src} alt={alt} className={thumbClass} />
               </button>
             ) : (
-              <div className="artifact__thumb artifact__thumb--placeholder" aria-hidden>
+              <div className={`${thumbClass} artifact__thumb--placeholder`} aria-hidden>
                 {loading ? "…" : "—"}
               </div>
             )}

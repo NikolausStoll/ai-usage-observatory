@@ -40,13 +40,10 @@ export function DataQualityHints({ event }: DataQualityHintsProps) {
   if (hints.length === 0) return null;
 
   return (
-    <div className="alert alert--warning">
-      <div style={{ fontWeight: 600, marginBottom: "var(--space-2)" }}>
-        ⚠ Data quality hints
-      </div>
-      <ul style={{ margin: 0, paddingLeft: 20 }}>
+    <div className="alert alert--warning event-hints" role="status">
+      <ul className="event-hints__list">
         {hints.map((h, i) => (
-          <li key={i} className="text-sm" style={{ marginBottom: 4 }}>{h}</li>
+          <li key={i}>{h}</li>
         ))}
       </ul>
     </div>

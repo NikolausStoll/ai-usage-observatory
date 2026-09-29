@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "../db/database.js";
 import { listEvents, getEvent } from "../domain/events/event-service.js";
 import { listArtifactsForEvent } from "../domain/artifacts/artifact-service.js";
+import { getApplication } from "../domain/applications/application-service.js";
 
 const EventFiltersSchema = z
   .object({
@@ -53,5 +54,8 @@ export const fetchEvent = createServerFn({ method: "GET", strict: false })
     const event = getEvent(db, eventId);
     if (!event) return null;
     const artifacts = listArtifactsForEvent(db, eventId);
-    return { event, artifacts };
+    const applicationId = event["application_id"] as string;
+    const app = getApplication(db, applicationId);
+    const applicationName = app?.displayName ?? applicationId;
+    return { event, artifacts, applicationName };
   });
