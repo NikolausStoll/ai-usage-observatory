@@ -189,3 +189,26 @@ export function decodeFeatureOp(
     return null;
   }
 }
+
+/** Encode applicationId+subjectId for subject group select values. */
+export function encodeSubject(
+  applicationId: string,
+  subjectId: string
+): string {
+  return `${encodeURIComponent(applicationId)}::${encodeURIComponent(subjectId)}`;
+}
+
+export function decodeSubject(
+  value: string
+): { applicationId: string; subjectId: string } | null {
+  const idx = value.indexOf("::");
+  if (idx < 0) return null;
+  try {
+    return {
+      applicationId: decodeURIComponent(value.slice(0, idx)),
+      subjectId: decodeURIComponent(value.slice(idx + 2)),
+    };
+  } catch {
+    return null;
+  }
+}

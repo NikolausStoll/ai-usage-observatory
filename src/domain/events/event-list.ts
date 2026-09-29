@@ -25,6 +25,8 @@ export interface EventListItem {
   environment: string;
   feature: string;
   operation: string;
+  subjectId: string | null;
+  subjectLabel: string | null;
   provider: string;
   requestedModel: string;
   reportedModel: string | null;

@@ -166,6 +166,8 @@ All fields use camelCase. Timestamps are ISO 8601 UTC.
 | Field | Type | Description |
 |-------|------|-------------|
 | `workflowId` | string | Business-level correlation across operations |
+| `subjectId` | string | App-defined stable identifier for the business object this AI op relates to (opaque; e.g. `recipe:123`). Used with `applicationId` for grouping. |
+| `subjectLabel` | string | Human-readable name/title of that object at request time (opaque; immutable on the event). Grouped views derive the current display name as the latest non-empty label by event `timestamp`. |
 | `applicationVersion` | string | App build/release version |
 | `reportedModel` | string | Model name as reported by the provider |
 | `promptId` | string | Application-defined prompt identifier |
@@ -211,6 +213,8 @@ All token fields are nullable. `cachedInputTokens` is a subset of `inputTokens`.
   "operation": "image-extraction",
   "operationId": "recipe-import:123:image-extraction",
   "workflowId": "recipe-import:123",
+  "subjectId": "recipe:123",
+  "subjectLabel": "Kartoffelauflauf mit Paprika",
   "attemptNumber": 1,
   "status": "success",
   "provider": "openai",

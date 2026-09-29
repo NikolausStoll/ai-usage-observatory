@@ -47,6 +47,44 @@ describe("event ingestion", () => {
     expect(row!["received_at"]).toBeDefined();
   });
 
+  it("persists subject context when provided", () => {
+    const withSubject = {
+      ...validEvent,
+      subjectId: "recipe:123",
+      subjectLabel: "Kartoffelauflauf mit Paprika",
+    };
+    ingestEvent(db, withSubject, "test-app");
+    const row = getEvent(db, withSubject.eventId)!;
+    expect(row["subject_id"]).toBe("recipe:123");
+    expect(row["subject_label"]).toBe("Kartoffelauflauf mit Paprika");
+  });
+
+  it("stores null subject fields when omitted (historical events)", () => {
+    ingestEvent(db, validEvent, "test-app");
+    const row = db
+      .prepare("SELECT subject_id, subject_label FROM events WHERE event_id = ?")
+      .get(validEvent.eventId) as {
+      subject_id: string | null;
+      subject_label: string | null;
+    };
+    expect(row.subject_id).toBeNull();
+    expect(row.subject_label).toBeNull();
+  });
+
+  it("does not derive workflowId from subjectId", () => {
+    const event = {
+      ...validEvent,
+      eventId: "0199c9f2-9f16-7abc-8def-0000000000aa",
+      subjectId: "recipe:999",
+      subjectLabel: "Test Recipe",
+      workflowId: undefined,
+    };
+    ingestEvent(db, event, "test-app");
+    const row = getEvent(db, event.eventId)!;
+    expect(row["subject_id"]).toBe("recipe:999");
+    expect(row["workflow_id"]).toBeNull();
+  });
+
   it("stores token usage fields correctly", () => {
     ingestEvent(db, validEvent, "test-app");
     const row = db.prepare("SELECT * FROM events WHERE event_id = ?")

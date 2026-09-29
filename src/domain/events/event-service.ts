@@ -8,9 +8,15 @@ import {
   type EventSortDir,
   type EventListItem,
 } from "./event-list.js";
+import { listSubjectGroups } from "./subject.js";
 
 export type { EventSortBy, EventSortDir, EventListItem } from "./event-list.js";
 export { DEFAULT_EVENT_PAGE_SIZE, MAX_EVENT_PAGE_SIZE } from "./event-list.js";
+export {
+  listSubjectGroups,
+  resolveSubjectDisplayLabel,
+  type SubjectGroup,
+} from "./subject.js";
 
 export interface IngestResult {
   eventId: string;
@@ -37,7 +43,7 @@ export function ingestEvent(
     INSERT INTO events (
       event_id, application_id, received_at, timestamp, duration_ms,
       environment, application_version, feature, operation, operation_id,
-      workflow_id, attempt_number, status, provider, requested_model,
+      workflow_id, subject_id, subject_label, attempt_number, status, provider, requested_model,
       reported_model, prompt_id, prompt_version, request_config,
       request_input, request_raw, request_metadata,
       response_output, response_raw, response_metadata,
@@ -47,7 +53,7 @@ export function ingestEvent(
     ) VALUES (
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?,
@@ -67,6 +73,8 @@ export function ingestEvent(
     event.operation,
     event.operationId,
     event.workflowId ?? null,
+    event.subjectId ?? null,
+    event.subjectLabel ?? null,
     event.attemptNumber,
     event.status,
     event.provider,
@@ -149,6 +157,20 @@ export interface EventListFilters {
   feature?: string;
   operation?: string;
   requestedModel?: string;
+  /**
+   * Case-insensitive substring match against subject labels.
+   * Matches events that share applicationId+subjectId with any event
+   * whose subject_label matches (group-aware), or the event's own label
+   * when subject_id is absent.
+   */
+  subjectLabel?: string;
+  /**
+   * Exact subject group filter. Must be paired with applicationId
+   * (or subjectApplicationId) — subjects are scoped per application.
+   */
+  subjectId?: string;
+  /** Application scope for subjectId when distinct from applicationId filter. */
+  subjectApplicationId?: string;
   sortBy?: EventSortBy;
   sortDir?: EventSortDir;
 }
@@ -158,6 +180,13 @@ export interface EventFilterFacets {
   environments: string[];
   featureOps: Array<{ feature: string; operation: string }>;
   models: string[];
+  /** Subject groups with latest-non-empty display labels. */
+  subjects: Array<{
+    applicationId: string;
+    subjectId: string;
+    displayLabel: string | null;
+    labels: string[];
+  }>;
 }
 
 export interface EventListResult {
@@ -206,7 +235,14 @@ export function getEventFilterFacets(db: Database.Database): EventFilterFacets {
       .all() as Array<{ requested_model: string }>
   ).map((r) => r.requested_model);
 
-  return { applications, environments, featureOps, models };
+  const subjects = listSubjectGroups(db).map((g) => ({
+    applicationId: g.applicationId,
+    subjectId: g.subjectId,
+    displayLabel: g.displayLabel,
+    labels: g.labels,
+  }));
+
+  return { applications, environments, featureOps, models, subjects };
 }
 
 export function listEvents(
@@ -246,6 +282,34 @@ export function listEvents(
     params.push(filters.requestedModel);
   }
 
+  const subjectAppId = filters.subjectApplicationId ?? filters.applicationId;
+  if (filters.subjectId && subjectAppId) {
+    conditions.push("e.application_id = ? AND e.subject_id = ?");
+    params.push(subjectAppId, filters.subjectId);
+  } else if (filters.subjectId) {
+    conditions.push("e.subject_id = ?");
+    params.push(filters.subjectId);
+  }
+
+  if (filters.subjectLabel) {
+    const pattern = `%${filters.subjectLabel.toLowerCase()}%`;
+    // Group-aware: an event matches if its own label matches, or it shares
+    // applicationId+subjectId with any event whose label matches.
+    conditions.push(`(
+      LOWER(COALESCE(e.subject_label, '')) LIKE ?
+      OR (
+        e.subject_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM events sx
+          WHERE sx.application_id = e.application_id
+            AND sx.subject_id = e.subject_id
+            AND LOWER(COALESCE(sx.subject_label, '')) LIKE ?
+        )
+      )
+    )`);
+    params.push(pattern, pattern);
+  }
+
   const safePageSize = Math.min(
     Math.max(1, Math.floor(pageSize) || DEFAULT_EVENT_PAGE_SIZE),
     MAX_EVENT_PAGE_SIZE
@@ -278,6 +342,7 @@ export function listEvents(
       `
     SELECT e.event_id, e.application_id, a.display_name as application_name,
            e.status, e.environment, e.feature, e.operation,
+           e.subject_id, e.subject_label,
            e.provider, e.requested_model, e.reported_model,
            e.input_tokens, e.cached_input_tokens, e.output_tokens,
            e.total_cost, e.pricing_id,
@@ -301,6 +366,8 @@ export function listEvents(
       environment: r["environment"] as string,
       feature: r["feature"] as string,
       operation: r["operation"] as string,
+      subjectId: (r["subject_id"] as string | null) ?? null,
+      subjectLabel: (r["subject_label"] as string | null) ?? null,
       provider: r["provider"] as string,
       requestedModel: r["requested_model"] as string,
       reportedModel: r["reported_model"] as string | null,

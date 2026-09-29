@@ -140,4 +140,49 @@ describe("event payload validation", () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe("subject context", () => {
+    it("accepts optional subjectId and subjectLabel", () => {
+      const result = IngestEventSchema.safeParse({
+        ...validEvent,
+        subjectId: "recipe:123",
+        subjectLabel: "Kartoffelauflauf mit Paprika",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.subjectId).toBe("recipe:123");
+        expect(result.data.subjectLabel).toBe("Kartoffelauflauf mit Paprika");
+      }
+    });
+
+    it("accepts events without subject fields (historical / omitted)", () => {
+      const result = IngestEventSchema.safeParse(validEvent);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.subjectId).toBeUndefined();
+        expect(result.data.subjectLabel).toBeUndefined();
+      }
+    });
+
+    it("rejects empty subjectId", () => {
+      expect(
+        IngestEventSchema.safeParse({ ...validEvent, subjectId: "" }).success
+      ).toBe(false);
+    });
+
+    it("rejects empty subjectLabel", () => {
+      expect(
+        IngestEventSchema.safeParse({ ...validEvent, subjectLabel: "" }).success
+      ).toBe(false);
+    });
+
+    it("does not require subjectId when subjectLabel is set", () => {
+      expect(
+        IngestEventSchema.safeParse({
+          ...validEvent,
+          subjectLabel: "Project Hail Mary",
+        }).success
+      ).toBe(true);
+    });
+  });
 });

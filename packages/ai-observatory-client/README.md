@@ -9,7 +9,7 @@ Missing `AI_OBSERVATORY_URL` / `AI_OBSERVATORY_API_KEY` (or explicit options) di
 Prefer a release tarball (no registry auth):
 
 ```bash
-npm install https://github.com/NikolausStoll/ai-usage-observatory/releases/download/client-v0.2.0/ai-observatory-client-0.2.0.tgz
+npm install https://github.com/NikolausStoll/ai-usage-observatory/releases/download/client-v0.3.0/ai-observatory-client-0.3.0.tgz
 ```
 
 Local checkout:

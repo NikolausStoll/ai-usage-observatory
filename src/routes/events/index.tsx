@@ -24,6 +24,8 @@ import {
   SearchableSelect,
   decodeFeatureOp,
   encodeFeatureOp,
+  decodeSubject,
+  encodeSubject,
 } from "../../components/SearchableSelect.js";
 import { formatArtifactHint } from "../../components/ArtifactHint.js";
 import { formatDateTimeDe, formatDateTimeShortDe } from "../../lib/format-date.js";
@@ -53,6 +55,9 @@ const FiltersSchema = z.object({
   feature: z.string().optional(),
   operation: z.string().optional(),
   requestedModel: z.string().optional(),
+  subjectLabel: z.string().optional(),
+  subjectId: z.string().optional(),
+  subjectApplicationId: z.string().optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   pageSize: z.coerce
     .number()
@@ -145,9 +150,24 @@ function EventsPage() {
     [facets.models]
   );
 
+  const subjectOptions = useMemo(
+    () =>
+      facets.subjects.map((s) => ({
+        value: encodeSubject(s.applicationId, s.subjectId),
+        label: s.displayLabel ?? s.subjectId,
+        keywords: [s.subjectId, s.applicationId, ...s.labels].join(" "),
+      })),
+    [facets.subjects]
+  );
+
   const selectedFeatureOp =
     search.feature != null
       ? encodeFeatureOp(search.feature, search.operation ?? "")
+      : "";
+
+  const selectedSubject =
+    search.subjectId != null && search.subjectApplicationId != null
+      ? encodeSubject(search.subjectApplicationId, search.subjectId)
       : "";
 
   const activeFilterChips: { key: string; label: string }[] = [];
@@ -172,6 +192,17 @@ function EventsPage() {
   if (search.requestedModel) {
     activeFilterChips.push({ key: "requestedModel", label: `Model: ${search.requestedModel}` });
   }
+  if (search.subjectId && search.subjectApplicationId) {
+    const group = facets.subjects.find(
+      (s) =>
+        s.applicationId === search.subjectApplicationId &&
+        s.subjectId === search.subjectId
+    );
+    const label = group?.displayLabel ?? search.subjectId;
+    activeFilterChips.push({ key: "subject", label: `Subject: ${label}` });
+  } else if (search.subjectLabel) {
+    activeFilterChips.push({ key: "subjectLabel", label: `Subject: ${search.subjectLabel}` });
+  }
   const activeFilterCount = activeFilterChips.length;
   const hasFilters = activeFilterCount > 0;
 
@@ -188,6 +219,19 @@ function EventsPage() {
         ...prev,
         feature: decoded?.feature || undefined,
         operation: decoded?.operation || undefined,
+        page: 1,
+      }),
+    });
+  }
+
+  function setSubject(value: string) {
+    const decoded = value ? decodeSubject(value) : null;
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        subjectApplicationId: decoded?.applicationId || undefined,
+        subjectId: decoded?.subjectId || undefined,
+        subjectLabel: undefined,
         page: 1,
       }),
     });
@@ -234,6 +278,23 @@ function EventsPage() {
           <div className="text-muted text-sm">{info.row.original.environment}</div>
         </div>
       ),
+    }),
+    columnHelper.display({
+      id: "subject",
+      header: () => <span className="sort-btn" style={{ cursor: "default" }}>Subject</span>,
+      cell: (info) => {
+        const label = info.row.original.subjectLabel;
+        const id = info.row.original.subjectId;
+        if (!label && !id) {
+          return <span className="text-muted">—</span>;
+        }
+        return (
+          <div>
+            <div>{label || <span className="text-muted">—</span>}</div>
+            <div className="text-muted text-sm mono">{id || "—"}</div>
+          </div>
+        );
+      },
     }),
     columnHelper.accessor("feature", {
       header: () => (
@@ -412,18 +473,15 @@ function EventsPage() {
             onChange={(v) => setFilter("applicationId", v)}
             placeholder="Search apps…"
           />
-          <div className="filter-bar__field filter-bar__field--status">
-            <label htmlFor="filter-status">Status</label>
-            <select
-              id="filter-status"
-              value={search.status ?? ""}
-              onChange={(e) => setFilter("status", e.target.value)}
-            >
-              <option value="">All</option>
-              <option value="success">Success</option>
-              <option value="error">Error</option>
-            </select>
-          </div>
+          <SearchableSelect
+            id="filter-subject"
+            label="Subject"
+            className="filter-bar__field--subject"
+            options={subjectOptions}
+            value={selectedSubject}
+            onChange={setSubject}
+            placeholder="Search subjects…"
+          />
           <SearchableSelect
             id="filter-env"
             label="Environment"
@@ -451,6 +509,18 @@ function EventsPage() {
             onChange={(v) => setFilter("requestedModel", v)}
             placeholder="Search models…"
           />
+          <div className="filter-bar__field filter-bar__field--status">
+            <label htmlFor="filter-status">Status</label>
+            <select
+              id="filter-status"
+              value={search.status ?? ""}
+              onChange={(e) => setFilter("status", e.target.value)}
+            >
+              <option value="">All</option>
+              <option value="success">Success</option>
+              <option value="error">Error</option>
+            </select>
+          </div>
           {hasFilters && (
             <div className="filter-bar__actions">
               <button type="button" className="btn" onClick={clearFilters}>

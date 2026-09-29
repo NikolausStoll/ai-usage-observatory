@@ -1,6 +1,6 @@
 {
   "name": "@nikolausstoll/ai-observatory-client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Fire-and-forget client for AI Usage Observatory event ingestion and artifact upload",
   "type": "module",
   "main": "./src/index.js",

@@ -17,6 +17,8 @@ export interface DashboardStats {
     environment: string;
     feature: string;
     operation: string;
+    subjectId: string | null;
+    subjectLabel: string | null;
     provider: string;
     requestedModel: string;
     inputTokens: number | null;
@@ -54,7 +56,8 @@ export function getDashboardStats(db: Database.Database): DashboardStats {
 
   const recentRows = db.prepare(`
     SELECT e.event_id, e.application_id, COALESCE(a.display_name, e.application_id) as application_name,
-           e.status, e.environment, e.feature, e.operation, e.provider, e.requested_model,
+           e.status, e.environment, e.feature, e.operation, e.subject_id, e.subject_label,
+           e.provider, e.requested_model,
            e.input_tokens, e.cached_input_tokens, e.output_tokens, e.timestamp, e.total_cost
     FROM events e
     LEFT JOIN applications a ON a.id = e.application_id
@@ -78,6 +81,8 @@ export function getDashboardStats(db: Database.Database): DashboardStats {
       environment: r["environment"] as string,
       feature: r["feature"] as string,
       operation: r["operation"] as string,
+      subjectId: (r["subject_id"] as string | null) ?? null,
+      subjectLabel: (r["subject_label"] as string | null) ?? null,
       provider: r["provider"] as string,
       requestedModel: r["requested_model"] as string,
       inputTokens: r["input_tokens"] as number | null,

@@ -25,6 +25,6 @@ describe("handleHealth", () => {
     const db = createTestDb();
     const result = handleHealth(db);
     // createTestDb applies all migrations
-    expect(result.migrations).toBe(3);
+    expect(result.migrations).toBe(4);
   });
 });

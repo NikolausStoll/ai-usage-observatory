@@ -916,6 +916,23 @@ tr.clickable-row:hover td {
   margin-bottom: var(--space-4);
 }
 
+.event-subject-hero {
+  margin: 0 0 var(--space-4);
+}
+
+.event-subject-hero__label {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.event-subject-hero__id {
+  margin-top: var(--space-1);
+}
+
 .artifact {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1283,6 +1300,7 @@ tr.clickable-row:hover td {
 .filter-bar__field--env { flex: 1 1 130px; max-width: 170px; }
 .filter-bar__field--feature { flex: 1 1 170px; max-width: 240px; }
 .filter-bar__field--model { flex: 1 1 150px; max-width: 200px; }
+.filter-bar__field--subject { flex: 1 1 160px; max-width: 220px; }
 
 .filter-bar__actions {
   display: flex;
@@ -1392,6 +1410,7 @@ tr.clickable-row:hover td {
   .filter-bar__field--env,
   .filter-bar__field--feature,
   .filter-bar__field--model,
+  .filter-bar__field--subject,
   .filter-bar > .filter-bar__field {
     flex: 1 1 calc(50% - var(--space-2));
     max-width: none;

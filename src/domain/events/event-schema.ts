@@ -54,6 +54,10 @@ export const IngestEventSchema = z.object({
   operation: z.string().min(1),
   operationId: z.string().min(1),
   workflowId: z.string().optional(),
+  /** App-defined stable identifier for the business object this AI op relates to. Opaque to Observatory. */
+  subjectId: z.string().min(1).optional(),
+  /** Human-readable name/title of that object at request time. Opaque to Observatory. */
+  subjectLabel: z.string().min(1).optional(),
   attemptNumber: z.number().int().min(1),
   status: z.enum(["success", "error"]),
   provider: z.string().min(1),

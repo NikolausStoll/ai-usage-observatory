@@ -6,7 +6,14 @@ import { ingestEvent, listEvents, getEvent } from "../../src/domain/events/event
 
 let db: Database.Database;
 
-function makeEvent(overrides: Partial<Omit<typeof base, "status">> & { eventId: string; status?: "success" | "error" }) {
+function makeEvent(
+  overrides: Partial<Omit<typeof base, "status">> & {
+    eventId: string;
+    status?: "success" | "error";
+    subjectId?: string;
+    subjectLabel?: string;
+  }
+) {
   return { ...base, ...overrides };
 }
 
@@ -104,6 +111,53 @@ describe("listEvents", () => {
     const r = listEvents(db, { requestedModel: "gpt-4.1-mini" });
     expect(r.items).toHaveLength(1);
     expect(r.items[0]!.requestedModel).toBe("gpt-4.1-mini");
+  });
+
+  it("includes subject fields in list items and filters by subjectLabel", () => {
+    ingestEvent(
+      db,
+      makeEvent({
+        eventId: "00000000-0000-4000-8000-000000000001",
+        subjectId: "recipe:123",
+        subjectLabel: "Kartoffelauflauf mit Paprika",
+      }),
+      "app-1"
+    );
+    ingestEvent(
+      db,
+      makeEvent({
+        eventId: "00000000-0000-4000-8000-000000000002",
+        subjectId: "book:1234",
+        subjectLabel: "Project Hail Mary",
+      }),
+      "app-1"
+    );
+    ingestEvent(
+      db,
+      makeEvent({ eventId: "00000000-0000-4000-8000-000000000003" }),
+      "app-1"
+    );
+
+    const all = listEvents(db);
+    expect(all.items).toHaveLength(3);
+    const withSubject = all.items.find(
+      (i) => i.eventId === "00000000-0000-4000-8000-000000000001"
+    )!;
+    expect(withSubject.subjectId).toBe("recipe:123");
+    expect(withSubject.subjectLabel).toBe("Kartoffelauflauf mit Paprika");
+    const without = all.items.find(
+      (i) => i.eventId === "00000000-0000-4000-8000-000000000003"
+    )!;
+    expect(without.subjectId).toBeNull();
+    expect(without.subjectLabel).toBeNull();
+
+    const byLabel = listEvents(db, { subjectLabel: "hail" });
+    expect(byLabel.items).toHaveLength(1);
+    expect(byLabel.items[0]!.subjectLabel).toBe("Project Hail Mary");
+
+    const byPartial = listEvents(db, { subjectLabel: "paprika" });
+    expect(byPartial.items).toHaveLength(1);
+    expect(byPartial.items[0]!.subjectId).toBe("recipe:123");
   });
 
   it("returns filter facets from used values", () => {

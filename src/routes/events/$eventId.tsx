@@ -77,6 +77,15 @@ function EventDetailPage() {
   const { event } = data;
   const e = event as Record<string, unknown>;
 
+  const subjectLabel =
+    typeof e["subject_label"] === "string" && e["subject_label"].trim() !== ""
+      ? (e["subject_label"] as string)
+      : null;
+  const subjectId =
+    typeof e["subject_id"] === "string" && e["subject_id"].trim() !== ""
+      ? (e["subject_id"] as string)
+      : null;
+
   const hasUsage = e["input_tokens"] !== null || e["output_tokens"] !== null;
   const activeCount = artifacts.filter((a) => a.deletedAt == null).length;
   const deletedCount = artifacts.length - activeCount;
@@ -102,6 +111,19 @@ function EventDetailPage() {
         </span>
       </div>
 
+      {subjectLabel || subjectId ? (
+        <div className="event-subject-hero">
+          {subjectLabel ? (
+            <h1 className="event-subject-hero__label">{subjectLabel}</h1>
+          ) : null}
+          {subjectId ? (
+            <div className="event-subject-hero__id mono text-sm text-secondary">
+              {subjectId}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <DataQualityHints event={e} />
       {hasUsage && <div style={{ marginBottom: "var(--space-4)" }} />}
 
@@ -115,6 +137,8 @@ function EventDetailPage() {
             <Row label="Operation" value={e["operation"] as string} />
             <Row label="Operation ID" value={e["operation_id"] as string} />
             <Row label="Workflow ID" value={e["workflow_id"] as string | null} />
+            {subjectId ? <Row label="Subject ID" value={subjectId} /> : null}
+            {subjectLabel ? <Row label="Subject label" value={subjectLabel} /> : null}
             <Row label="Attempt #" value={e["attempt_number"] as number} />
           </tbody>
         </table>

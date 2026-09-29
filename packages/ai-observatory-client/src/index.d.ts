@@ -22,6 +22,17 @@ export interface ObservatoryRequestResponse {
 }
 
 /**
+ * Optional business-object context for an AI operation.
+ * Flattened to `subjectId` / `subjectLabel` on the wire event.
+ */
+export interface ObservatorySubject {
+  /** App-defined stable identifier (e.g. `recipe:123`). Opaque to Observatory. */
+  id?: string;
+  /** Human-readable name/title at request time (e.g. recipe title). */
+  label?: string;
+}
+
+/**
  * Event payload for POST /api/v1/events.
  * @see https://github.com/NikolausStoll/ai-usage-observatory/blob/main/docs/api.md
  */
@@ -35,6 +46,8 @@ export interface ObservatoryEvent {
   operation: string;
   operationId: string;
   workflowId?: string;
+  subjectId?: string;
+  subjectLabel?: string;
   attemptNumber: number;
   status: "success" | "error";
   provider: string;
@@ -61,7 +74,13 @@ export type ObservatoryEventInput = Omit<
       ObservatoryEvent,
       "eventId" | "timestamp" | "durationMs" | "attemptNumber" | "environment"
     >
-  >;
+  > & {
+    /**
+     * Ergonomic subject context. Maps to `subjectId` / `subjectLabel`.
+     * Flat `subjectId` / `subjectLabel` still take precedence when both are set.
+     */
+    subject?: ObservatorySubject;
+  };
 
 /** Artifact role for POST /api/v1/events/{eventId}/artifacts. */
 export type ArtifactRole = "input" | "output";
@@ -122,6 +141,7 @@ export interface ObservatoryClient {
   /**
    * Fill defaults (`eventId`, `timestamp`, `durationMs`, `attemptNumber`, `environment`)
    * then `report`. No-op when disabled.
+   * Accepts optional `subject: { id, label }` which maps to wire fields.
    */
   reportEvent(partial: ObservatoryEventInput): void;
   /**
@@ -146,6 +166,7 @@ export function createObservatoryClient(
 /**
  * Build a complete event, filling `eventId`, `timestamp`, `durationMs` (0),
  * `attemptNumber` (1), and `environment` when omitted.
+ * Flattens optional `subject: { id, label }` into `subjectId` / `subjectLabel`.
  */
 export function buildEvent(
   partial: ObservatoryEventInput,

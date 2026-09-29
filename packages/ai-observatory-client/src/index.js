@@ -26,8 +26,10 @@ export function resolveEnvironment(fallback) {
  * @returns {import("./index.js").ObservatoryEvent}
  */
 export function buildEvent(partial, options = {}) {
-  return {
-    ...partial,
+  const { subject, ...rest } = partial;
+  /** @type {import("./index.js").ObservatoryEvent} */
+  const event = {
+    ...rest,
     eventId: partial.eventId ?? randomUUID(),
     timestamp: partial.timestamp ?? new Date().toISOString(),
     durationMs: partial.durationMs ?? 0,
@@ -35,6 +37,26 @@ export function buildEvent(partial, options = {}) {
     environment:
       partial.environment ?? resolveEnvironment(options.environment),
   };
+
+  const subjectId =
+    rest.subjectId != null && String(rest.subjectId).trim() !== ""
+      ? String(rest.subjectId)
+      : subject?.id != null && String(subject.id).trim() !== ""
+        ? String(subject.id)
+        : undefined;
+  const subjectLabel =
+    rest.subjectLabel != null && String(rest.subjectLabel).trim() !== ""
+      ? String(rest.subjectLabel)
+      : subject?.label != null && String(subject.label).trim() !== ""
+        ? String(subject.label)
+        : undefined;
+
+  if (subjectId !== undefined) event.subjectId = subjectId;
+  else delete event.subjectId;
+  if (subjectLabel !== undefined) event.subjectLabel = subjectLabel;
+  else delete event.subjectLabel;
+
+  return event;
 }
 
 /**

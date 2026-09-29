@@ -109,4 +109,22 @@ describe("POST /api/v1/events", () => {
     const body = await res.json();
     expect(body.received).toBe(true);
   });
+
+  it("round-trips subject context through ingest API", async () => {
+    const payload = {
+      ...validEvent,
+      eventId: "0199c9f2-9f16-7abc-8def-0000000000bb",
+      subjectId: "book:1234",
+      subjectLabel: "Project Hail Mary",
+    };
+    const res = await handleIngestEvent(makeRequest(payload));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.received).toBe(true);
+
+    const { getEvent } = await import("../../src/domain/events/event-service.js");
+    const row = getEvent(db, payload.eventId)!;
+    expect(row["subject_id"]).toBe("book:1234");
+    expect(row["subject_label"]).toBe("Project Hail Mary");
+  });
 });

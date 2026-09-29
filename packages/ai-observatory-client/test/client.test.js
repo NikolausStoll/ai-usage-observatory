@@ -40,6 +40,73 @@ describe("ai-observatory-client", () => {
     assert.equal(event.environment, "test");
     assert.equal(event.feature, "recipe-import");
     assert.equal(event.usage?.inputTokens, 10);
+    assert.equal(event.subjectId, undefined);
+    assert.equal(event.subjectLabel, undefined);
+  });
+
+  it("buildEvent maps subject nested object to wire fields", () => {
+    const event = buildEvent({
+      feature: "recipe-import",
+      operation: "image-extraction",
+      operationId: "recipe-import:123:image-extraction",
+      status: "success",
+      provider: "openai",
+      requestedModel: "gpt-4o-mini",
+      subject: {
+        id: "recipe:123",
+        label: "Kartoffelauflauf mit Paprika",
+      },
+    });
+
+    assert.equal(event.subjectId, "recipe:123");
+    assert.equal(event.subjectLabel, "Kartoffelauflauf mit Paprika");
+    assert.equal("subject" in event, false);
+  });
+
+  it("buildEvent flat subjectId/subjectLabel take precedence over subject", () => {
+    const event = buildEvent({
+      feature: "f",
+      operation: "o",
+      operationId: "f:o",
+      status: "success",
+      provider: "openai",
+      requestedModel: "m",
+      subjectId: "book:1234",
+      subjectLabel: "Project Hail Mary",
+      subject: { id: "ignored", label: "ignored" },
+    });
+
+    assert.equal(event.subjectId, "book:1234");
+    assert.equal(event.subjectLabel, "Project Hail Mary");
+  });
+
+  it("reportEvent POSTs subject fields from nested subject", async () => {
+    /** @type {{ body?: Record<string, unknown> }} */
+    const seen = {};
+    const client = createObservatoryClient({
+      baseUrl: "http://obs.example",
+      apiKey: "key",
+      environment: "test",
+      fetch: async (_url, init) => {
+        seen.body = JSON.parse(String(init?.body));
+        return new Response("{}", { status: 200 });
+      },
+    });
+
+    client.reportEvent({
+      feature: "media",
+      operation: "summarize",
+      operationId: "media:book:1234:summarize",
+      status: "success",
+      provider: "openai",
+      requestedModel: "gpt-4o-mini",
+      subject: { id: "book:1234", label: "Project Hail Mary" },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+
+    assert.equal(seen.body?.subjectId, "book:1234");
+    assert.equal(seen.body?.subjectLabel, "Project Hail Mary");
+    assert.equal(seen.body?.subject, undefined);
   });
 
   it("createObservatoryClient is disabled without URL/key", () => {

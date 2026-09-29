@@ -115,8 +115,14 @@ function DashboardPage() {
                     >
                       <td><EventStatusBadge status={e.status} /></td>
                       <td>
-                        <div>{e.applicationName}</div>
-                        <div className="text-muted text-sm">{e.environment} · {e.feature}</div>
+                        <div>
+                          {e.subjectLabel ? e.subjectLabel : e.applicationName}
+                        </div>
+                        <div className="text-muted text-sm">
+                          {e.subjectLabel
+                            ? `${e.applicationName} · ${e.environment} · ${e.feature}`
+                            : `${e.environment} · ${e.feature}`}
+                        </div>
                       </td>
                       <td>
                         <ModelLabel model={e.requestedModel} provider={e.provider} />

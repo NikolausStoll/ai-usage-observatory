@@ -13,6 +13,8 @@ export interface EventListCardData {
   requestedModel: string;
   feature?: string | null;
   operation?: string | null;
+  subjectId?: string | null;
+  subjectLabel?: string | null;
   applicationName: string;
   environment?: string | null;
   inputTokens?: number | null;
@@ -39,6 +41,14 @@ export function EventListCard({ event }: { event: EventListCardData }) {
     event.cachedInputTokens != null ||
     event.outputTokens != null;
 
+  const subjectLabel =
+    event.subjectLabel != null && event.subjectLabel.trim() !== ""
+      ? event.subjectLabel
+      : null;
+  const subjectId =
+    event.subjectId != null && event.subjectId.trim() !== ""
+      ? event.subjectId
+      : null;
   const featureOp = [event.feature, event.operation].filter(Boolean).join(" · ");
   const appEnv = [event.applicationName, event.environment].filter(Boolean).join(" · ");
   const durationLabel =
@@ -76,8 +86,25 @@ export function EventListCard({ event }: { event: EventListCardData }) {
         <ModelLabel model={event.requestedModel} provider={event.provider} />
       </div>
 
+      {subjectLabel || subjectId ? (
+        <>
+          <div className="event-card__primary">
+            {subjectLabel ?? <span className="text-muted">—</span>}
+          </div>
+          {subjectId ? (
+            <div className="event-card__meta mono">{subjectId}</div>
+          ) : null}
+        </>
+      ) : null}
+
       {featureOp ? (
-        <div className="event-card__primary">{featureOp}</div>
+        <div
+          className={
+            subjectLabel || subjectId ? "event-card__meta" : "event-card__primary"
+          }
+        >
+          {featureOp}
+        </div>
       ) : null}
 
       {appEnv ? (

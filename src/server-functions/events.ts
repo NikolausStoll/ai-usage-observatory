@@ -13,6 +13,9 @@ const EventFiltersSchema = z
     feature: z.string().optional(),
     operation: z.string().optional(),
     requestedModel: z.string().optional(),
+    subjectLabel: z.string().optional(),
+    subjectId: z.string().optional(),
+    subjectApplicationId: z.string().optional(),
     page: z.number().int().positive().optional(),
     pageSize: z.number().int().positive().max(1000).optional(),
     sortBy: z
