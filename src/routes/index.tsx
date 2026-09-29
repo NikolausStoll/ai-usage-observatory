@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { fetchDashboardStats } from "../server-functions/dashboard.js";
 import type { DashboardStats } from "../domain/dashboard/dashboard-service.js";
+import { formatDateTimeDe } from "../lib/format-date.js";
 
 export const Route = createFileRoute("/")({
   loader: () => fetchDashboardStats(),
@@ -71,7 +72,7 @@ function DashboardPage() {
                   <td className="mono" style={{ fontSize: "0.85em" }}>
                     {e.totalCost ? `$${parseFloat(e.totalCost).toFixed(6)}` : <span className="text-muted">—</span>}
                   </td>
-                  <td style={{ fontSize: "0.85em", color: "#888" }}>{new Date(e.timestamp).toLocaleString()}</td>
+                  <td style={{ fontSize: "0.85em", color: "#888" }}>{formatDateTimeDe(e.timestamp)}</td>
                   <td>
                     <Link to="/events/$eventId" params={{ eventId: e.eventId }} style={{ fontSize: "0.8em" }}>
                       View →

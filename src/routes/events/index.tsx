@@ -17,6 +17,7 @@ import {
 } from "../../domain/events/event-list.js";
 import { EventStatusBadge } from "../../components/EventStatusBadge.js";
 import { formatCostCents } from "../../lib/format-cost.js";
+import { formatDateTimeDe } from "../../lib/format-date.js";
 
 const PAGE_SIZE_PRESETS = [50, 100, 250, 500, 1000] as const;
 
@@ -91,7 +92,7 @@ function ModelCell({ model, provider }: { model: string; provider: string }) {
           background: "none",
           border: "none",
           padding: 0,
-          color: "#64b5f6",
+          color: "#e0e0e0",
           cursor: "pointer",
           font: "inherit",
           textDecoration: "underline dotted",
@@ -269,7 +270,7 @@ function EventsPage() {
       ),
       cell: (info) => (
         <span style={{ fontSize: "0.85em", color: "#aaa" }}>
-          {new Date(info.getValue()).toLocaleString()}
+          {formatDateTimeDe(info.getValue())}
         </span>
       ),
     }),

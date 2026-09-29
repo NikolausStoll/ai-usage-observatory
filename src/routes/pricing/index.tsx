@@ -12,6 +12,8 @@ import type { PricingRecord } from "../../domain/pricing/pricing-schema.js";
 import type { MissingPricingModel } from "../../domain/pricing/pricing-service.js";
 import type { ImportPreview } from "../../domain/pricing/import-service.js";
 import { parseImportFile } from "../../domain/pricing/import-schema.js";
+import { formatPriceUsd } from "../../lib/format-cost.js";
+import { formatDateDe } from "../../lib/format-date.js";
 
 interface LoaderData {
   pricing: PricingRecord[];
@@ -301,13 +303,13 @@ function PricingPage() {
                 {importPreview.entries.map((e, i) => (
                   <tr key={i}>
                     <td className="mono">{e.entry.model}</td>
-                    <td style={{ fontSize: "0.85em" }}>{new Date(e.entry.validFrom).toLocaleDateString()}</td>
+                    <td style={{ fontSize: "0.85em" }}>{formatDateDe(e.entry.validFrom)}</td>
                     <td style={{ fontSize: "0.85em", color: e.entry.validUntil ? "#aaa" : "#4caf50" }}>
-                      {e.entry.validUntil ? new Date(e.entry.validUntil).toLocaleDateString() : "open"}
+                      {e.entry.validUntil ? formatDateDe(e.entry.validUntil) : "open"}
                     </td>
-                    <td className="mono">${e.entry.inputPerMillion}</td>
-                    <td className="mono">${e.entry.cachedInputPerMillion}</td>
-                    <td className="mono">${e.entry.outputPerMillion}</td>
+                    <td className="mono">{formatPriceUsd(e.entry.inputPerMillion)}</td>
+                    <td className="mono">{formatPriceUsd(e.entry.cachedInputPerMillion)}</td>
+                    <td className="mono">{formatPriceUsd(e.entry.outputPerMillion)}</td>
                     <td>
                       {e.status === "new" && (
                         <span style={{ color: "#4caf50", fontWeight: 600 }}>New</span>
@@ -354,8 +356,8 @@ function PricingPage() {
                     <span style={{ color: "#666", margin: "0 6px" }}>/</span>
                     <span className="mono" style={{ color: "#ff9800" }}>{m.model}</span>
                     <span style={{ color: "#666", fontSize: "0.85em", marginLeft: 12 }}>
-                      {m.eventCount.toLocaleString()} event{m.eventCount !== 1 ? "s" : ""} ·{" "}
-                      {new Date(m.earliestEvent).toLocaleDateString()} – {new Date(m.latestEvent).toLocaleDateString()}
+                      {m.eventCount.toLocaleString("de-DE")} event{m.eventCount !== 1 ? "s" : ""} ·{" "}
+                      {formatDateDe(m.earliestEvent)} – {formatDateDe(m.latestEvent)}
                     </span>
                   </div>
                   <button
@@ -442,12 +444,12 @@ function PricingPage() {
                 <tr key={p.id}>
                   <td className="mono">{p.provider}</td>
                   <td className="mono">{p.model}</td>
-                  <td className="mono">${p.inputPricePerMillion}</td>
-                  <td className="mono">${p.cachedInputPricePerMillion}</td>
-                  <td className="mono">${p.outputPricePerMillion}</td>
-                  <td style={{ fontSize: "0.85em" }}>{new Date(p.validFrom).toLocaleDateString()}</td>
+                  <td className="mono">{formatPriceUsd(p.inputPricePerMillion)}</td>
+                  <td className="mono">{formatPriceUsd(p.cachedInputPricePerMillion)}</td>
+                  <td className="mono">{formatPriceUsd(p.outputPricePerMillion)}</td>
+                  <td style={{ fontSize: "0.85em" }}>{formatDateDe(p.validFrom)}</td>
                   <td style={{ fontSize: "0.85em", color: p.validUntil ? "#aaa" : "#4caf50" }}>
-                    {p.validUntil ? new Date(p.validUntil).toLocaleDateString() : "open"}
+                    {p.validUntil ? formatDateDe(p.validUntil) : "open"}
                   </td>
                   <td style={{ display: "flex", gap: 4 }}>
                     <button className="btn" style={{ fontSize: "0.78em", padding: "3px 8px" }} onClick={() => openEdit(p)}>Edit</button>

@@ -6,6 +6,7 @@ import { CostBreakdown } from "../../components/CostBreakdown.js";
 import { DataQualityHints } from "../../components/DataQualityHints.js";
 import { JsonDisplay } from "../../components/JsonDisplay.js";
 import { ArtifactViewer } from "../../components/ArtifactViewer.js";
+import { formatDateTimeDe } from "../../lib/format-date.js";
 
 export const Route = createFileRoute("/events/$eventId")({
   loader: ({ params }) => fetchEvent({ data: params.eventId }),
@@ -80,9 +81,9 @@ function EventDetailPage() {
       <Section title="Timing">
         <table style={{ width: "auto" }}>
           <tbody>
-            <Row label="Timestamp" value={new Date(e["timestamp"] as string).toLocaleString()} />
-            <Row label="Duration" value={`${(e["duration_ms"] as number).toLocaleString()} ms`} />
-            <Row label="Received at" value={new Date(e["received_at"] as string).toLocaleString()} />
+            <Row label="Timestamp" value={formatDateTimeDe(e["timestamp"] as string)} />
+            <Row label="Duration" value={`${(e["duration_ms"] as number).toLocaleString("de-DE")} ms`} />
+            <Row label="Received at" value={formatDateTimeDe(e["received_at"] as string)} />
           </tbody>
         </table>
       </Section>

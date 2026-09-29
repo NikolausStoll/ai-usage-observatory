@@ -9,6 +9,7 @@ import {
   revokeApiKeyFn,
 } from "../../server-functions/applications.js";
 import type { Application, ApiKey } from "../../domain/applications/application-service.js";
+import { formatDateDe, formatDateTimeDe } from "../../lib/format-date.js";
 
 export const Route = createFileRoute("/applications/")({
   loader: () => fetchApplications(),
@@ -196,7 +197,7 @@ function ApplicationsPage() {
               </button>
             </div>
             <div style={{ color: "#666", fontSize: "0.82em", marginTop: 4 }}>
-              Created {new Date(app.createdAt).toLocaleDateString()}
+              Created {formatDateDe(app.createdAt)}
             </div>
 
             {expandedApp === app.id && (
@@ -253,14 +254,14 @@ function ApplicationsPage() {
                           <td className="mono" style={{ fontSize: "0.9em" }}>{key.name}</td>
                           <td>
                             {key.revokedAt
-                              ? <span style={{ color: "#f44336", fontSize: "0.85em" }}>Revoked {new Date(key.revokedAt).toLocaleDateString()}</span>
+                              ? <span style={{ color: "#f44336", fontSize: "0.85em" }}>Revoked {formatDateDe(key.revokedAt)}</span>
                               : <span style={{ color: "#4caf50", fontSize: "0.85em" }}>Active</span>}
                           </td>
                           <td style={{ fontSize: "0.85em", color: "#888" }}>
-                            {new Date(key.createdAt).toLocaleDateString()}
+                            {formatDateDe(key.createdAt)}
                           </td>
                           <td style={{ fontSize: "0.85em", color: "#888" }}>
-                            {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : "—"}
+                            {key.lastUsedAt ? formatDateTimeDe(key.lastUsedAt) : "—"}
                           </td>
                           <td>
                             {!key.revokedAt && (
