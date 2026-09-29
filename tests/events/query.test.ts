@@ -116,6 +116,14 @@ describe("listEvents", () => {
     expect(p3.items).toHaveLength(1);
   });
 
+  it("defaults to page size 100 and clamps oversized page sizes", () => {
+    const def = listEvents(db);
+    expect(def.pageSize).toBe(100);
+
+    const clamped = listEvents(db, {}, 1, 5000);
+    expect(clamped.pageSize).toBe(1000);
+  });
+
   it("returns cost fields when priced", () => {
     db.prepare(`
       INSERT INTO pricing (id, provider, model, input_price_per_million, cached_input_price_per_million,
@@ -133,6 +141,49 @@ describe("listEvents", () => {
     const r = listEvents(db);
     expect(r.items[0]!.totalCost).not.toBeNull();
     expect(r.items[0]!.pricingId).toBe("p1");
+  });
+
+  it("includes cached input tokens in list items", () => {
+    ingestEvent(
+      db,
+      {
+        ...base,
+        eventId: "00000000-0000-4000-8000-000000000001",
+        usage: {
+          inputTokens: 1000,
+          outputTokens: 100,
+          cachedInputTokens: 400,
+          reasoningTokens: null,
+          totalTokens: 1100,
+        },
+      },
+      "app-1"
+    );
+
+    const r = listEvents(db);
+    expect(r.items[0]!.cachedInputTokens).toBe(400);
+  });
+
+  it("defaults to timestamp desc order", () => {
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000001", timestamp: "2026-09-09T12:01:00.000Z" }), "app-1");
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000002", timestamp: "2026-09-09T12:03:00.000Z" }), "app-1");
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000003", timestamp: "2026-09-09T12:02:00.000Z" }), "app-1");
+
+    const r = listEvents(db);
+    expect(r.items.map((i) => i.eventId)).toEqual([
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000003",
+      "00000000-0000-4000-8000-000000000001",
+    ]);
+  });
+
+  it("sorts by requested model ascending", () => {
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000001", requestedModel: "gpt-4" }), "app-1");
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000002", requestedModel: "claude-3" }), "app-1");
+    ingestEvent(db, makeEvent({ eventId: "00000000-0000-4000-8000-000000000003", requestedModel: "gpt-3.5" }), "app-1");
+
+    const r = listEvents(db, { sortBy: "requestedModel", sortDir: "asc" });
+    expect(r.items.map((i) => i.requestedModel)).toEqual(["claude-3", "gpt-3.5", "gpt-4"]);
   });
 });
 

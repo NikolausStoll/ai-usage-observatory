@@ -11,6 +11,22 @@ const EventFiltersSchema = z.object({
   feature: z.string().optional(),
   provider: z.string().optional(),
   page: z.number().int().positive().optional(),
+  pageSize: z.number().int().positive().max(1000).optional(),
+  sortBy: z.enum([
+    "timestamp",
+    "status",
+    "applicationName",
+    "environment",
+    "feature",
+    "operation",
+    "requestedModel",
+    "inputTokens",
+    "cachedInputTokens",
+    "outputTokens",
+    "totalCost",
+    "durationMs",
+  ]).optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
 }).optional();
 
 export const fetchEvents = createServerFn({ method: "GET", strict: false })
@@ -18,7 +34,7 @@ export const fetchEvents = createServerFn({ method: "GET", strict: false })
   .handler(async ({ data }) => {
     const db = getDb();
     const filters = data ?? {};
-    return listEvents(db, filters, filters.page ?? 1);
+    return listEvents(db, filters, filters.page ?? 1, filters.pageSize);
   });
 
 export const fetchEvent = createServerFn({ method: "GET", strict: false })

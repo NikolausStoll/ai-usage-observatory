@@ -1,3 +1,5 @@
+import { formatCostCents } from "../lib/format-cost.js";
+
 interface DataQualityHintsProps {
   event: Record<string, unknown>;
 }
@@ -31,7 +33,7 @@ export function DataQualityHints({ event }: DataQualityHintsProps) {
   if (status === "error" && totalCost !== null) {
     const cost = parseFloat(totalCost);
     if (cost > 0) {
-      hints.push(`Error event incurred cost of $${cost.toFixed(6)}`);
+      hints.push(`Error event incurred cost of ${formatCostCents(totalCost)}`);
     }
   }
 

@@ -52,6 +52,8 @@ function RootComponent() {
           th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #222; font-size: 0.88em; }
           th { color: #888; font-weight: 600; font-size: 0.8em; text-transform: uppercase; }
           tr:hover td { background: #141414; }
+          tr.clickable-row { cursor: pointer; }
+          tr.clickable-row:hover td { background: #1a1a1a; }
           .page { padding: 24px; max-width: 1400px; }
           .section { margin-bottom: 32px; }
           h1 { font-size: 1.4em; margin: 0 0 16px 0; color: #fff; }

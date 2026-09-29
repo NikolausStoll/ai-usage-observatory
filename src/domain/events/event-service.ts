@@ -115,12 +115,45 @@ export function ingestEvent(
   return { eventId: event.eventId, received: true, duplicate: false };
 }
 
+export type EventSortBy =
+  | "timestamp"
+  | "status"
+  | "applicationName"
+  | "environment"
+  | "feature"
+  | "operation"
+  | "requestedModel"
+  | "inputTokens"
+  | "cachedInputTokens"
+  | "outputTokens"
+  | "totalCost"
+  | "durationMs";
+
+export type EventSortDir = "asc" | "desc";
+
+const SORT_COLUMNS: Record<EventSortBy, string> = {
+  timestamp: "e.timestamp",
+  status: "e.status",
+  applicationName: "a.display_name",
+  environment: "e.environment",
+  feature: "e.feature",
+  operation: "e.operation",
+  requestedModel: "e.requested_model",
+  inputTokens: "e.input_tokens",
+  cachedInputTokens: "e.cached_input_tokens",
+  outputTokens: "e.output_tokens",
+  totalCost: "CAST(e.total_cost AS REAL)",
+  durationMs: "e.duration_ms",
+};
+
 export interface EventListFilters {
   applicationId?: string;
   status?: string;
   environment?: string;
   feature?: string;
   provider?: string;
+  sortBy?: EventSortBy;
+  sortDir?: EventSortDir;
 }
 
 export interface EventListItem {
@@ -135,6 +168,7 @@ export interface EventListItem {
   requestedModel: string;
   reportedModel: string | null;
   inputTokens: number | null;
+  cachedInputTokens: number | null;
   outputTokens: number | null;
   totalCost: string | null;
   pricingId: string | null;
@@ -149,11 +183,14 @@ export interface EventListResult {
   pageSize: number;
 }
 
+export const DEFAULT_EVENT_PAGE_SIZE = 100;
+export const MAX_EVENT_PAGE_SIZE = 1000;
+
 export function listEvents(
   db: Database.Database,
   filters: EventListFilters = {},
   page = 1,
-  pageSize = 50
+  pageSize = DEFAULT_EVENT_PAGE_SIZE
 ): EventListResult {
   const conditions: string[] = [];
   const params: unknown[] = [];
@@ -179,8 +216,16 @@ export function listEvents(
     params.push(filters.provider);
   }
 
+  const safePageSize = Math.min(
+    Math.max(1, Math.floor(pageSize) || DEFAULT_EVENT_PAGE_SIZE),
+    MAX_EVENT_PAGE_SIZE
+  );
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const offset = (page - 1) * pageSize;
+  const offset = (page - 1) * safePageSize;
+
+  const sortBy = filters.sortBy && SORT_COLUMNS[filters.sortBy] ? filters.sortBy : "timestamp";
+  const sortDir = filters.sortDir === "asc" ? "ASC" : "DESC";
+  const orderBy = `${SORT_COLUMNS[sortBy]} ${sortDir}`;
 
   const countRow = db.prepare(
     `SELECT COUNT(*) as cnt FROM events e ${where}`
@@ -191,14 +236,15 @@ export function listEvents(
     SELECT e.event_id, e.application_id, a.display_name as application_name,
            e.status, e.environment, e.feature, e.operation,
            e.provider, e.requested_model, e.reported_model,
-           e.input_tokens, e.output_tokens, e.total_cost, e.pricing_id,
+           e.input_tokens, e.cached_input_tokens, e.output_tokens,
+           e.total_cost, e.pricing_id,
            e.timestamp, e.duration_ms
     FROM events e
     LEFT JOIN applications a ON a.id = e.application_id
     ${where}
-    ORDER BY e.timestamp DESC
+    ORDER BY ${orderBy}
     LIMIT ? OFFSET ?
-  `).all(...params, pageSize, offset) as Array<Record<string, unknown>>;
+  `).all(...params, safePageSize, offset) as Array<Record<string, unknown>>;
 
   return {
     items: rows.map((r) => ({
@@ -213,6 +259,7 @@ export function listEvents(
       requestedModel: r["requested_model"] as string,
       reportedModel: r["reported_model"] as string | null,
       inputTokens: r["input_tokens"] as number | null,
+      cachedInputTokens: r["cached_input_tokens"] as number | null,
       outputTokens: r["output_tokens"] as number | null,
       totalCost: r["total_cost"] as string | null,
       pricingId: r["pricing_id"] as string | null,
@@ -221,7 +268,7 @@ export function listEvents(
     })),
     total,
     page,
-    pageSize,
+    pageSize: safePageSize,
   };
 }
 
