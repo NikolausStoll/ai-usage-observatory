@@ -25,3 +25,19 @@ chmod +x scripts/generate-branding-icons.sh
 ```
 
 Do not add a runtime image-processing dependency for this.
+
+## PWA installability
+
+Besides the web app manifest (`public/manifest.webmanifest`) and icons,
+Chromium still expects a registered **service worker with a `fetch` handler**
+for a reliable install affordance (Recipe Library does the same via `public/sw.js`).
+
+Observatory pieces:
+
+| File | Role |
+|---|---|
+| `public/manifest.webmanifest` | name, icons 192/512, `start_url`/`scope`, `display: standalone` |
+| `public/sw.js` | Minimal shell cache + fetch handler (ingress-safe relative scope) |
+| `src/routes/__root.tsx` | Registers `sw.js` via `assetUrl` (works under HA Ingress) |
+
+Serve over HTTPS (or localhost). API traffic under `/api/` is not intercepted by the SW.

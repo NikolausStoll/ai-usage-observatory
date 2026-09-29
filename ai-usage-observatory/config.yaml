@@ -1,5 +1,5 @@
 name: "AI Usage Observatory"
-version: "1.2.1"
+version: "1.2.2"
 slug: "ai-usage-observatory"
 description: "Observability and cost analysis for AI usage across private applications"
 url: "https://github.com/NikolausStoll/ai-usage-observatory"

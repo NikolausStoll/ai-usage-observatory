@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createRootRoute,
   HeadContent,
@@ -57,10 +57,22 @@ export const Route = createRootRoute({
   component: RootComponent,
 });
 
+function registerServiceWorker() {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  const swUrl = assetUrl("sw.js");
+  void navigator.serviceWorker.register(swUrl).catch((err) => {
+    console.warn("[ai-observatory] service worker registration failed:", err);
+  });
+}
+
 function RootComponent() {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: { queries: { staleTime: 10_000, retry: 1 } },
   }));
+
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   return (
     <html lang="en">
