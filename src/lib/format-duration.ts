@@ -2,7 +2,7 @@
  * Human-readable duration from milliseconds for UI display.
  * Stored `durationMs` values are never altered — this is presentation only.
  *
- * Examples: `184 ms`, `1.84 s`, `12.3 s`, `1m 08s`
+ * Examples: `184 ms`, `1.84 s`, `12.30 s`, `1m 08s`
  */
 export function formatDurationMs(ms: number | null | undefined): string {
   if (ms == null || !Number.isFinite(ms) || ms < 0) return "—";
@@ -13,12 +13,8 @@ export function formatDurationMs(ms: number | null | undefined): string {
     return `${whole} ms`;
   }
 
-  if (whole < 10_000) {
-    return `${(whole / 1000).toFixed(2)} s`;
-  }
-
   if (whole < 60_000) {
-    return `${(whole / 1000).toFixed(1)} s`;
+    return `${(whole / 1000).toFixed(2)} s`;
   }
 
   const totalSeconds = Math.floor(whole / 1000);

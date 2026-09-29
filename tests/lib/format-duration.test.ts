@@ -8,16 +8,12 @@ describe("formatDurationMs", () => {
     expect(formatDurationMs(999)).toBe("999 ms");
   });
 
-  it("formats under 10s with two decimal places", () => {
+  it("formats under 60s with two decimal places", () => {
     expect(formatDurationMs(1840)).toBe("1.84 s");
     expect(formatDurationMs(1000)).toBe("1.00 s");
-    expect(formatDurationMs(9999)).toBe("10.00 s");
-  });
-
-  it("formats under 60s with one decimal place", () => {
-    expect(formatDurationMs(12300)).toBe("12.3 s");
-    expect(formatDurationMs(10_000)).toBe("10.0 s");
-    expect(formatDurationMs(59_900)).toBe("59.9 s");
+    expect(formatDurationMs(12300)).toBe("12.30 s");
+    expect(formatDurationMs(10_000)).toBe("10.00 s");
+    expect(formatDurationMs(59_900)).toBe("59.90 s");
   });
 
   it("formats minutes with zero-padded seconds", () => {

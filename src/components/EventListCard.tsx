@@ -103,6 +103,16 @@ export function EventListCard({ event }: { event: EventListCardData }) {
       </div>
 
       <div className="event-card__foot">
+        {durationLabel ? (
+          <>
+            <span className="event-card__duration num" title={durationTitle}>
+              {durationLabel}
+            </span>
+            <span className="event-card__sep" aria-hidden>
+              ·
+            </span>
+          </>
+        ) : null}
         {artifactHint ? (
           <>
             <button
@@ -116,16 +126,6 @@ export function EventListCard({ event }: { event: EventListCardData }) {
             >
               {artifactHint.label}
             </button>
-            <span className="event-card__sep" aria-hidden>
-              ·
-            </span>
-          </>
-        ) : null}
-        {durationLabel ? (
-          <>
-            <span className="event-card__duration num" title={durationTitle}>
-              {durationLabel}
-            </span>
             <span className="event-card__sep" aria-hidden>
               ·
             </span>

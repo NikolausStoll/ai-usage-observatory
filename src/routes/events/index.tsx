@@ -224,34 +224,6 @@ function EventsPage() {
       cell: (info) => <EventStatusBadge status={info.getValue()} />,
       size: 72,
     }),
-    columnHelper.accessor("artifactCount", {
-      header: () => <span className="sort-btn" style={{ cursor: "default" }}>Art</span>,
-      cell: (info) => {
-        const hint = formatArtifactHint(
-          info.getValue(),
-          info.row.original.artifactDeletedCount
-        );
-        if (!hint) return <span className="text-muted">—</span>;
-        return (
-          <button
-            type="button"
-            className={`artifact-hint${hint.allDeleted ? " artifact-hint--deleted" : ""}`}
-            title={hint.title}
-            onClick={(e) => {
-              e.stopPropagation();
-              void navigate({
-                to: "/events/$eventId",
-                params: { eventId: info.row.original.eventId },
-                hash: "artifacts",
-              });
-            }}
-          >
-            {hint.label}
-          </button>
-        );
-      },
-      size: 72,
-    }),
     columnHelper.accessor("applicationName", {
       header: () => (
         <SortHeader label="Application" column="applicationName" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
@@ -324,6 +296,34 @@ function EventsPage() {
           {formatDurationMs(info.getValue())}
         </span>
       ),
+      size: 72,
+    }),
+    columnHelper.accessor("artifactCount", {
+      header: () => <span className="sort-btn" style={{ cursor: "default" }}>Art</span>,
+      cell: (info) => {
+        const hint = formatArtifactHint(
+          info.getValue(),
+          info.row.original.artifactDeletedCount
+        );
+        if (!hint) return <span className="text-muted">—</span>;
+        return (
+          <button
+            type="button"
+            className={`artifact-hint${hint.allDeleted ? " artifact-hint--deleted" : ""}`}
+            title={hint.title}
+            onClick={(e) => {
+              e.stopPropagation();
+              void navigate({
+                to: "/events/$eventId",
+                params: { eventId: info.row.original.eventId },
+                hash: "artifacts",
+              });
+            }}
+          >
+            {hint.label}
+          </button>
+        );
+      },
       size: 72,
     }),
     columnHelper.accessor("timestamp", {

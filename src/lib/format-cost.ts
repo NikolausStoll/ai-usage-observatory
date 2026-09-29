@@ -30,7 +30,7 @@ export function formatCostDisplay(usd: string | null | undefined): {
   if (n === 0) return { label: "$0", title };
   const abs = Math.abs(n);
   if (abs < 0.01) {
-    return { label: `${(n * 100).toFixed(2)} ¢`, title };
+    return { label: `${(n * 100).toFixed(4)} ¢`, title };
   }
   if (abs < 1) {
     return { label: `$${n.toFixed(4)}`, title };
