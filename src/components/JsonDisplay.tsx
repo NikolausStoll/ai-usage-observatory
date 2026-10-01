@@ -103,7 +103,7 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-const INSPECTOR_HEIGHT = { primary: 260, secondary: 160 } as const;
+const INSPECTOR_HEIGHT = { primary: 280, secondary: 160 } as const;
 
 export function JsonDisplay({
   value,
@@ -171,14 +171,7 @@ export function JsonDisplay({
       </div>
       <pre
         className={`code-block json-block${!expanded ? " json-block--collapsed" : ""}${inspectorRole && !expanded ? " json-block--inspector" : ""}`}
-        style={
-          !expanded
-            ? {
-                maxHeight,
-                ...(inspectorRole && !isLarge ? { minHeight: maxHeight } : {}),
-              }
-            : undefined
-        }
+        style={!expanded ? { maxHeight } : undefined}
       >
         <code>{highlighted}</code>
       </pre>

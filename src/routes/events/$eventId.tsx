@@ -145,7 +145,7 @@ function EventDetailPage() {
   }
 
   return (
-    <div className="page page--wide event-detail">
+    <div className="page event-detail">
       <div className="detail-bar">
         <Link to="/events" className="back-link">
           ← Events
