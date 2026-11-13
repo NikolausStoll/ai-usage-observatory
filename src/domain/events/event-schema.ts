@@ -10,7 +10,7 @@ const jsonValueSchema: z.ZodType<unknown> = z.lazy(() =>
     z.boolean(),
     z.null(),
     z.array(jsonValueSchema),
-    z.record(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
   ])
 );
 
@@ -19,7 +19,7 @@ const requestResponseSchema = z
     input: jsonValueSchema.optional(),
     output: jsonValueSchema.optional(),
     raw: jsonValueSchema.optional(),
-    metadata: z.record(jsonValueSchema).optional(),
+    metadata: z.record(z.string(), jsonValueSchema).optional(),
   })
   .optional();
 
@@ -30,7 +30,7 @@ const usageSchema = z
     outputTokens: z.number().int().nonnegative().nullable().optional(),
     reasoningTokens: z.number().int().nonnegative().nullable().optional(),
     totalTokens: z.number().int().nonnegative().nullable().optional(),
-    rawUsage: z.record(jsonValueSchema).optional(),
+    rawUsage: z.record(z.string(), jsonValueSchema).optional(),
   })
   .optional();
 
@@ -38,7 +38,7 @@ const errorSchema = z
   .object({
     type: z.string().optional(),
     message: z.string().optional(),
-    metadata: z.record(jsonValueSchema).optional(),
+    metadata: z.record(z.string(), jsonValueSchema).optional(),
   })
   .optional();
 
@@ -65,14 +65,14 @@ export const IngestEventSchema = z.object({
   reportedModel: z.string().optional(),
   promptId: z.string().optional(),
   promptVersion: z.string().optional(),
-  requestConfig: z.record(jsonValueSchema).optional(),
+  requestConfig: z.record(z.string(), jsonValueSchema).optional(),
   request: requestResponseSchema,
   response: requestResponseSchema,
   usage: usageSchema,
   httpStatus: z.number().int().optional(),
   error: errorSchema,
-  metadata: z.record(jsonValueSchema).optional(),
-  metrics: z.record(jsonValueSchema).optional(),
+  metadata: z.record(z.string(), jsonValueSchema).optional(),
+  metrics: z.record(z.string(), jsonValueSchema).optional(),
 });
 
 export type IngestEvent = z.infer<typeof IngestEventSchema>;
