@@ -43,7 +43,7 @@ export async function handleIngestEvent(request: Request): Promise<Response> {
     return Response.json(
       {
         error: "validation_error",
-        details: result.error.errors.map((e) => ({
+        details: result.error.issues.map((e) => ({
           path: e.path,
           message: e.message,
         })),

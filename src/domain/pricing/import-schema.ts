@@ -19,7 +19,7 @@ export const PricingImportEntrySchema = z.object({
 
 export const PricingImportFileSchema = z.object({
   schemaVersion: z.literal(1, {
-    errorMap: () => ({ message: "Unsupported schemaVersion. Only version 1 is supported." }),
+    error: "Unsupported schemaVersion. Only version 1 is supported.",
   }),
   provider: z.string().min(1),
   source: z.string().optional(),
